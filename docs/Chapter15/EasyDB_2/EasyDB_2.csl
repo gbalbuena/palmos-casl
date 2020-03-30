@@ -1,0 +1,240 @@
+#########################################################
+#
+#EasyDB_2
+#
+#From the book - Developing with CASL
+#
+#Copyright 2001 - 2002 Paul Schmid
+#
+#########################################################
+
+#Step 3:  Declaring the Database
+#A database object named database has been declared 
+#with three fields and a synchronization preference of none.  
+#The three database fields are declared as string variables.
+
+variables;
+	string fldKeyField;	#First database field
+	string fldTwo;			#Second database field
+	string fldThree;		#Third database field
+end;
+
+#Database declaration
+dbfile database;
+	field fldKeyField;
+	field fldTwo;
+	field fldThree;
+	sync_pref none;
+end;
+
+ 
+#Step 4:  Opening and Closing the Database
+#The openDatabase function opens a database file named easyDB_2.  
+#The closeDatabase function closes all databases opened using the 
+#database template.  The ERRORCODE variable is used to trap errors 
+#during the opening and closing of the database.
+
+function openDatabase;
+	variables;
+		numeric response;
+	end;
+
+	errorcode = 0;
+	open database, "easyDB_2";
+	if errorcode <> 0;
+		response = message_box(0,"Open Error",
+ 															"Cannot open database.",
+ 															"","OK","");
+	end_if;
+end;
+
+function closeDatabase;
+	variables;
+		numeric response;
+	end;
+
+	errorcode = 0;
+	close database;
+	if errorcode <> 0;
+		response = message_box(0,"Close Error",
+ 														"Cannot close database.",
+ 														"","OK","");
+	end_if;
+end;
+
+
+#Step 5:  Displaying the Record Position
+#The displayRecordPos function uses the predefined 
+#bookmark variable to display the position of 
+#the record pointer.
+
+function displayRecordPos;
+	lblRecordPos.display = string(bookmark,"#");
+end;
+
+
+#Step 6:  Reading a Database Record
+#The readRecord function uses the GET_FIELDS 
+#method to set the field variables with the data 
+#from the current record and fills the text fields 
+#with the field variables.  ERRORCODE is used to check 
+#if the GET_FIELDS method was successful.
+
+function readRecord;
+	variables;
+		numeric response;
+	end;
+
+	errorcode = 0;
+	get_fields database;
+	#if successful errorcode will equal zero
+	#if there are no records, errorcode will equal -5
+	#which indicates an end of file error
+	if errorcode = 0 or errorcode = -5;
+		txtKeyField.display = fldKeyField;
+		txtFldTwo.display = fldTwo;
+		txtFldThree.display = fldThree;
+	else;
+		response = message_box(0,"Read Error",
+ 															"Cannot read record.",
+ 															"","OK","");
+	end_if;
+end;
+
+
+#Step 7:  Navigating Records
+#The four navigation buttons invoke these functions.  
+#It is not necessary to check for error codes after the 
+#SEEK methods because they do not set the ERRORCODE variable.
+
+#Move to and display the first record
+function firstRecord;
+	seek_start database, 0;
+	call readRecord;	
+	call displayRecordPos;
+end;
+
+#Move to and display the previous record
+function prevRecord;
+	seek_here database, -1;
+	call readRecord;
+	call displayRecordPos;
+end;
+
+ 
+#Move to and display the next record
+function nextRecord;
+	seek_here database, 1;
+		call readRecord;
+		call displayRecordPos;
+		#When at end of file move to last record
+		if errorcode = -5;
+			seek_end database, 1;
+		end_if;
+end;
+
+#Move to and display the last record
+function lastRecord;
+	seek_end database, 1;
+	call readRecord;
+	call displayRecordPos;
+end;
+
+
+#Step 8:  Clearing the Text Fields
+#When invoked by the Clear button, the 
+#clearTextFields function puts empty 
+#strings in the text objects. 
+
+function clearTextFields;
+	txtKeyField.display = "";
+	txtFldTwo.display = "";
+	txtFldThree.display = "";
+end;
+
+
+#Step 9:  Adding a Record
+#The addRecord function adds a record to the 
+#database if given permission by the user.  
+#The prevRecord and nextRecord functions are 
+#called to update the position of the record pointer.  
+#ERRORCODE is used to warn the user if the record is not inserted.
+
+function addRecord;
+	variables;
+		numeric response;
+	end;
+
+	response = message_box(0,"dbXibit",
+ 													"Add this record?",
+ 													"YES","","NO");
+
+	if response = 0;
+		fldKeyField = txtKeyField.display;
+		fldTwo = txtFldTwo.display;
+		fldThree = txtFldThree.display;
+		errorcode = 0;
+		insert database;
+		
+ 
+		if errorcode = 0;
+			call prevRecord;
+			call nextRecord;
+		else;
+			response = message_box(0,"Insert Error",
+ 																"Cannot insert record.",
+																"","OK","");
+		end_if;
+	end_if;
+end;
+
+
+#Step 10:  Deleting a Record
+#The deleteRecord function deletes the current 
+#record if given permission by the user.  The 
+#prevRecord and nextRecord functions are called to 
+#read and display the record following the deleted record.  
+#ERRORCODE is used to warn the user if there was a problem 
+#deleting the record.
+
+function deleteRecord;
+	variables;
+		numeric response;
+	end;
+
+	response = message_box(0,"dbXibit",
+ 													"Delete this record?",
+ 														"YES","","NO");
+	
+	if response = 0;
+		errorcode = 0;
+		remove database;
+		if errorcode = 0;
+			call prevRecord;
+			call nextRecord;
+		else;
+			response = message_box(0,"Delete Error",
+ 																"Cannot delete record.",
+ 																"","OK","");
+		end_if;
+	end_if;
+end;
+
+ 
+#Step 11:  Starting Up and Shutting Down
+#The startup function is responsible for calling the 
+#functions that open the database, read the last record,
+#and display the current record position.  
+#The shutdown function closes the database.
+
+function startup;
+	call openDatabase;
+	call lastRecord;
+	call displayRecordPos;
+end;
+
+
+function shutdown;
+	close database;
+end;
+

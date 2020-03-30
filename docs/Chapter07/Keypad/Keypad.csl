@@ -1,0 +1,81 @@
+#########################################################
+#
+#Keypad
+#
+#From the book - Developing with CASL
+#
+#Copyright 2001 - 2002 Paul Schmid
+#
+#########################################################
+
+#Step 3:  Labeling the Keys
+#The labelKeys function places 
+#the numbers and characters on the buttons.
+
+
+function labelKeys;
+	variables;
+		numeric loopCounter;
+	end;
+
+	for loopCounter = 0, loopCounter < 9;
+		btnKey[loopCounter].display = string(loopCounter + 1,"#");
+	next loopCounter;
+	btnKey[9].display = "0";
+	btnKey[10].display = ".";
+	btnKey[11].display = "-";
+	btnKey[12].display = "<";
+end;
+
+
+#Step 4:  Sending Keystrokes
+#The sendKeys function sends the button's display 
+#to the text field, using invokersub to know 
+#which button is being tapped.
+
+
+function sendKeys;
+	variables;
+		numeric cursorPos;	#position of cursor in text object
+		numeric textLength;	#length of the current number
+		string leftHalf;		#text to the left of the cursor
+		string rightHalf;		#text to the right of the cursor
+		string newString;		#new text to output to text field
+		string orgString;		#original text in text field
+	end;
+
+	orgString = txtInput.display;
+
+	cursorPos = txtInput.cursor;
+
+	textLength = length(txtInput.display);
+
+	#break up the existing text into two parts
+	#left half before the cursor
+	#right half after the cursor
+	leftHalf = left(txtInput.display,cursorPos);
+	rightHalf = right(txtInput.display,textLength - cursorPos);
+
+	#build a new string based on the button being tapped
+	#invokersub equals the array index being tapped
+	if invokersub < 11;									#number or decimal
+		newString = lefthalf + btnKey[invokersub].display + rightHalf;
+	else_if invokersub = 11 and cursorPos = 0;	#negative sign
+		newString = btnKey[invokersub].display + orgString;
+	else_if invokersub = 12;							#backspace
+		newString = left(leftHalf, cursorPos - 1) + rightHalf;
+	else; 													#do nothing
+		newString = orgString;							
+	end_if;
+
+	#put the new string into the text field
+	txtInput.display = newString;
+	
+end;
+
+
+#Step 5:  Starting Up
+
+function startup;
+	call labelKeys;
+end;

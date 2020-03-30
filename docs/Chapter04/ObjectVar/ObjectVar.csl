@@ -1,0 +1,49 @@
+#########################################################
+#
+#ObjectVar
+#
+#From the book - Developing with CASL
+#
+#Copyright 2001 - 2002 Paul Schmid
+#
+#########################################################
+
+#Step 3:  Declaring Global Variables
+#Declare two object variables.  
+#These will be used to store the button objects.
+
+variables;
+	object objBtn1;
+	object objBtn2;
+end;
+
+
+#Step 4:  Displaying the Width
+#The displayWidth function has an object parameter that accepts an object variable.  
+#When a button is tapped, its object variable is passed to this function, 
+#and the button's display property is obtained through the object variable and 
+#displayed in a label.
+
+function displayWidth(object objVar);
+	lblWidth.display = string(objVar.width,"#");
+end;
+
+
+#Step 5:  Invoking the Functions
+#The button objects invoke these functions.  
+#Each function sets an object variable equal 
+#to a button object and passes the objects variable 
+#to the displayWidth function.
+
+
+function tapBtnOne;
+	objBtn1 = btnOne;
+	call displayWidth(objBtn1);
+end;
+
+
+function tapBtnTwo;
+	objBtn2 = btnTwo;
+	call displayWidth(objBtn2);
+end;
+

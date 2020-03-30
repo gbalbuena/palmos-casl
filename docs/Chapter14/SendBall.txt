@@ -1,0 +1,39 @@
+variables;
+  numeric elapsedTime; 	#current elapsed time
+  numeric orgElapsedTime; #original elapsed time
+end;
+
+function sendBall;
+  variables;
+    numeric loopCounter;
+    numeric PACE = 1000;  #time between bitmaps
+    numeric HOLD = 1500;  #time before restart
+  end;
+
+  for loopCounter = 0, loopCounter < 5;
+    #show one of the five buttons
+    show btnBall[loopCounter];
+    #set elapsed and original elapsed times
+    elapsedTime = timevalue;
+    orgElapsedTIme = elapsedTime;
+    #wait for the time indicated by PACE
+    while elapsedTime < orgElapsedTime + PACE;
+      elapsedTime = timevalue;
+    end_while;
+  next loopCounter;
+
+  #wait for the time indicted by HOLD before restarting
+  while elapsedTime < orgElapsedTime + HOLD;
+    elapsedTime = timevalue;	
+  end_while;
+
+  #show the first bitmap
+  show btnBall[0];
+  #function calls itself in 1 second
+  timer sendBall, 1000;
+end;
+
+function startup;
+  #call the sendball function in 1 second
+  timer sendBall, 1000;
+end;

@@ -1,0 +1,119 @@
+#########################################################
+#
+#HealthTrak
+#
+#DB_User.cpk
+#
+#From the book - Developing with CASL
+#
+#Copyright 2001 - 2002 Paul Schmid
+#
+#########################################################
+
+function clearUserFields;
+end;
+
+function initSexCheckboxes;
+end;
+
+function isUserNameValid as numeric;
+end;
+
+
+#Step 3:  Filling UserDB Fields
+#The putUserFields function places the value of 
+#the text objects into the field variables of the userDB database.
+
+function putUserFields;
+	name = txtName.display;
+	if chkSex[0].checkbox = true;
+		sex = "M";
+	else;
+		sex = "F";
+	end_if;
+	
+	init_Weight = value(txtWeight_U.display);
+	init_Height = value(txtHeight.display);
+	init_age = value(txtAge.display);
+end;
+
+
+#Step 4:  Displaying UserDB Fields
+#The getUserFields function places the values 
+#of the userDB database fields into the text objects.
+
+function getUserFields;
+	txtName.display = name;
+	if sex = "M";
+		chkSex[0].checkbox = true;
+		chkSex[1].checkbox = false;
+	else;
+		chkSex[1].checkbox = true;
+		chkSex[0].checkbox = false;
+	end_if;
+	txtAge.display = string(init_age,"#");
+	txtWeight_U.display = string(init_Weight,"#");
+	txtHeight.display = string(init_Height,"#");
+	#translate height and width if necessary
+	if unitType = "Eng" and g_UnitType = "Met";
+		txtWeight_U.display = string(lb_to_kg(init_Weight),"#");
+		txtHeight.display = string(in_to_cm(init_Height),"#");
+	else_if unitType = "Met" and g_UnitType = "Eng";
+		txtWeight_U.display = string(kg_to_lb(init_Weight),"#");
+		txtHeight.display = string(cm_to_in(init_Height),"#");
+	end_if;
+end;
+
+
+#Step 5:  Modifying the userDB Database
+#The OK button invokes the modifyUserDB function.  
+#This function determines the mode of the user form 
+#(New or Edit) and modifies the userDB database accordingly.  
+#If the user form is in New mode, a new user record is inserted.  
+#If the form is in Edit mode, the user's record is updated 
+#rather than inserted a second time.  This function only 
+#allows ten user profiles to be inserted.
+
+function modifyUserDB;
+	variables;
+		numeric response;
+		numeric recordCount;
+		numeric MAX_USERS = 10;
+	end;
+
+	if frmUser.display = "New User";
+		recordCount = DB_RecordCount(userDB);
+		#limit to 10 users
+		if recordCount < MAX_USERS;
+			#name field must contain data
+			if isUserNameValid = true;
+				response = message_box(0,"HealthTrak","Add this user?","YES","","NO");
+				if response = 0;
+					call putUserFields;
+					call insertRecord(userDB);
+					call openDB(dataDB, name);
+					call closeDB(dataDB);
+					call clearUserFields;
+					call initSexCheckboxes;
+					txtName.focused = true;
+				end_if;
+			else;
+				response = message_box(0,"HealthTrak","Invalid name.","","OK","");
+			end_if;
+		else;
+	 		response = message_box(0,"HealthTrak","10 users max.","","OK","");
+		end_if;
+	else_if frmUser.display = "Edit User";
+		response = message_box(0,"HealthTrak","Update this user?","YES","","NO");
+		if response = 0;
+			call putUserFields;
+			call updateRecord(userDB, name);
+			hide frmUser;
+			show frmLogin;
+			#refresh user selector
+			call clearUserSelector;
+			call fillUserSelector;
+			call refreshUserSelector;
+		end_if;
+	end_if;
+end;

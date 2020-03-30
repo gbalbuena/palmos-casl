@@ -1,0 +1,229 @@
+#########################################################
+#
+#HealthTrak
+#
+#_UniversalDB.cpk
+#
+#From the book - Developing with CASL
+#
+#Copyright 2001 - 2002 Paul Schmid
+#
+#########################################################
+
+#Step 2:  Opening a Database
+#Opens a database using the dbName and dbObject parameters.
+
+function openDB(object dbObject, string dbName);
+	variables;
+		numeric response;
+	end;
+
+	#reset the errorcode
+	errorcode = 0;
+
+	open dbObject, dbName;
+
+	if errorcode <> 0;
+		response = message_box(0,"HealthTrak",
+	 													"DB Open error:"+   
+	 														dbName,"","OK","");
+	end_if;
+end;
+
+ 
+#Step 3:  Closing a Database
+#Closes a database using the dbObject parameter.
+
+function closeDB(object dbObject);
+	variables;
+		numeric response;
+	end;
+
+	#reset the errorcode
+	errorcode = 0;
+
+	close dbObject;
+
+	if errorcode <> 0;
+		response = message_box(0,"HealthTrak",
+														"DB Close error: " + 
+															dbObject.open_name,
+															"","OK","");
+	end_if;
+end;
+
+
+#Step 4:  Deleting a Database
+#Deletes a database using the dbName parameter.
+
+function deleteDB(string dbName);
+	variables;
+		numeric response;
+	end;
+
+	#reset the errorcode
+	errorcode = 0;
+
+	delete dbName;
+
+	if errorcode <> 0;
+		response = message_box(0,"HealthTrak",
+															"DB Delete error: " + 
+															dbName,"","OK","");
+	end_if;
+end;
+
+
+#Step 5:  Counting Records
+#The DB_RecordCount function returns the record 
+#count of the database belonging to the database 
+#object passed to the function via the dbObject paramater.
+
+function DB_RecordCount(object dbObject) as numeric;
+	DB_RecordCount = dbObject.number_of_records;
+end;
+
+
+#Step 6:  Finding a Record
+#The foundRecord function returns the resulting errorcode 
+#from the SEARCH method.  The two most likely values are 0 
+#indicating the record was found or -12 indicating the record was not found.
+
+function foundRecord(object dbObject, string searchString) as numeric;
+	#reset the errorcode
+	errorcode = 0;
+	search dbObject, searchString;
+	foundRecord = errorcode;
+end;
+
+
+#Step 7:  Updating a Record
+#The updateRecord function prevents records with 
+#duplicate key fields to be entered.  If the record 
+#being updated has a key field that already exists in 
+#the database, the record will be removed and then inserted 
+#to prevent a duplicate entry.
+
+function updateRecord(object dbObject, string searchString);
+	variables;
+		numeric response;
+	end;
+
+	#-12 indicates the record was not found
+	if foundRecord(dbObject, searchString) = 0;
+		remove dbObject;
+		insert dbObject;
+	else;
+		response = message_box(0,"HealthTrak",
+ 															"Update Record Error: " + 
+															 dbObject.open_name,
+ 															"","OK","");
+	end_if;
+end;
+
+
+#Step 8:  Inserting a Record
+#Unlike the updateRecord function, the insertRecord 
+#function does not check for records with duplicate key 
+#fields.  It simply inserts a new record into the database.
+
+function insertRecord(object dbObject);
+	variables;
+		numeric response;
+	end;
+
+	#reset the errorcode
+	errorcode = 0;
+
+	insert dbObject;
+	if errorcode <> 0;
+		response = message_box(0,"HealthTrak",
+ 															"Insert Record Error: " + 
+ 															dbObject.open_name ,
+ 															"","OK","");
+	end_if;
+end;
+
+
+#Step 9:  Removing a Record
+#The removeRecord function calls the foundRecord 
+#function to make sure the record to be removed 
+#actually exists.  If it exists, it is removed from the database.
+
+function removeRecord(object dbObject, string dbName);
+	variables;
+		numeric response;
+	end;
+
+	if foundRecord(dbObject, dbName) = 0;
+		remove dbObject;
+	else;
+		response = message_box(0,"HealthTrak",
+ 														"Unable to remove record.",
+ 															"","OK","");
+	end_if;	
+end;
+
+
+#Step 10:  Displaying Records
+#The functions, totalPageCount and currRecCount, 
+#are used to display database records in a selector 
+#and in the line chart.
+
+#TotalPageCount determines how many selector or chart 
+#"pages" it will take to display the entire database.  
+#For example, if there are twelve records in a database 
+#and a selector is capable of displaying five records, 
+#the totalPageCount would be three.  That is, three selector 
+#pages would be required to display all twelve records (5 + 5 + 2).
+
+function totalPageCount(object dbObject, numeric bufferSize)as numeric;
+	variables;
+			numeric initCount;
+			numeric remainder;
+	end;
+
+	#the initial page count
+	initCount = trunc(DB_RecordCount(dbObject) / bufferSize);
+
+	#count of leftover records
+	remainder = DB_RecordCount(dbObject) % bufferSize;
+ 
+	#if there are no leftover records subtract a page for
+	#the zero-based page count
+	if remainder > 0;
+		totalPageCount = initCount;
+	else;
+		totalPageCount = initCount - 1;
+	end_if;
+end;
+
+
+#The current record count function, currRecCount, 
+#determines how many records should be retrieved from the 
+#database.  Its value is based on the size of the display 
+#object and the current "page" count.  Consider the example 
+#proposed for the totalPageCount function.   If the 
+#totalPageCount is three, the currRecCount decides how 
+#many records to put into each of the three pages (5 + 5 + 2).  
+#When the current page count is zero and one, currRecCount 
+#will return five.  When the current page count is two (the last page) 
+#the currRecCount function will return two.
+
+function currRecCount (object dbObject, 
+  											numeric currentPage, 
+  											numeric displaySize) 
+  											as numeric;
+	variables;
+		numeric recordCount;
+	end;
+
+	recordCount = DB_RecordCount(dbObject);
+
+	if currentPage < totalPageCount(dbObject, displaySize) and
+ 		recordCount >= displaySize;
+		currRecCount = displaySize;
+	else;
+		currRecCount = recordCount-(currentPage*displaySize);
+	end_if;
+end;

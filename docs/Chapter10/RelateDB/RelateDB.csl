@@ -1,0 +1,195 @@
+#########################################################
+#
+#RelateDB
+#
+#From the book - Developing with CASL
+#
+#Copyright 2001 - 2002 Paul Schmid
+#
+#########################################################
+
+#Step 3:  Declaring the Employee Database
+#Declare an employee database object.
+
+variables;
+	numeric empID;		#Employee ID
+	string lastName;	#Last name
+	string firstName;  #First name
+	numeric age;       #Age field
+	string hireDate;   #Hire Date
+	numeric deptID;    #Link to Department DB
+end;
+
+dbfile empDatabase;	
+	field empID;
+	field lastName;
+	field firstName;
+	field age;
+	field hireDate;
+	field deptID;
+	sync_pref none;
+end;
+
+
+#Step 4:  Declaring the Department Database
+#Declare a department database object.
+
+variables;
+	numeric dept_ID;      #Department ID
+	numeric deptNum;      #Department number
+	string deptLoc;       #Department Location
+	string mgrFirstName;  #Manager's first name
+	string mgrLastName;   #Manager's last name
+end;
+
+ 
+dbfile deptDatabase;
+	field dept_ID;
+	field deptNum;
+	field deptLoc;
+	field mgrLastName;
+	field mgrFirstName;
+	sync_pref none;
+end;
+
+
+#Step 5:  Opening, Closing, and Deleting
+#These three functions manage the opening, closing, 
+#and deleting of the employee and department databases.
+
+function openDatabases;	
+	open empDatabase, "empDB";
+	open deptDatabase, "deptDB";
+end;
+
+function closeDatabases;	
+	close empDatabase;
+	close deptDatabase;
+end;
+
+function deleteDatabases;	
+	delete "empDB";
+	delete "deptDB";
+end;
+
+
+#Step 6:  Filling Databases
+#These two functions fill the databases with employee 
+#and department records.  Notice how lines of code are 
+#placed on the same lines to save space.
+
+function fillEmpDatabase;
+	empID = 1;lastName = "Anderson";firstName = "Bill";
+	age = 34;hireDate = "03121990";deptID = 1;
+	
+	insert empDatabase;
+	
+	empID = 2;lastName = "Johnson";firstName = "Mike";
+	age = 22;hireDate = "06152000";deptID = 1;
+	
+	insert empDatabase;
+	
+	empID = 3;lastName = "Miller";firstName = "Steve";
+	age = 48;hireDate = "02021987";deptID = 2;
+	
+	insert empDatabase;
+	
+	 
+	empID = 4;lastName = "Smith";firstName = "Shelly";
+	age = 26;hireDate = "09061995";deptID = 2;
+	
+	insert empDatabase;
+end;
+
+
+function fillDeptDatabase;
+	dept_ID = 1;deptNum = 2;deptLoc = "Seattle";
+	mgrLastName = "Williams";mgrFirstName = "Cindy";
+	
+	insert deptDatabase;
+	
+	dept_ID = 2;deptNum = 4;deptLoc = "Cleveland";
+	mgrLastName = "Howard";mgrFirstName = "Ron";
+	
+	insert deptDatabase;
+end;
+
+
+#Step 7:  Displaying Records
+#The displayRecord function is invoked by the 
+#startup function to read the first employee record.  
+#It uses the DeptID field from the employee record to 
+#find the employee's department record in the department 
+#database.  It then calls the updateFields function to 
+#display the employee and department records.
+
+function updateFields;
+	txtEmp[0].display = string(empID,"#");
+	txtEmp[1].display = lastName;
+	txtEmp[2].display = firstName;
+	txtEmp[3].display = string(age,"#");
+	txtEmp[4].display = hireDate;
+	
+	txtDept[0].display = string(deptNum,"#");
+	txtDept[1].display = deptLoc;
+	txtDept[2].display = mgrFirstName;
+	txtDept[3].display = mgrLastName;
+end;
+
+function displayRecord;
+	seek_start empDatabase, 0;
+	get_fields empDatabase;
+	search deptDatabase, deptID;
+	get_fields deptDatabase;
+	call updateFields;
+end;
+
+
+#Step 8:  Navigating the Employee Database
+#The up and down buttons invoke the moveUp and moveDown 
+#functions.  These functions move to a record in the 
+#employee database and read the DeptID field.  
+#The DeptID field is then used to find the employee's 
+#department record in the department database.  Finally, 
+#the updateFields function is called to display the 
+#employee and department records.
+
+function moveUp;
+	if empID <> 1; 
+		seek_here empDatabase, -1;
+		get_fields empDatabase;
+		search deptDatabase, deptID;
+		get_fields deptDatabase;
+		call updateFields;
+	end_if;
+end;
+
+function moveDown;
+	if empID <> empDatabase.number_of_records;
+		seek_here empDatabase, 1;
+		get_fields empDatabase;
+		search deptDatabase, deptID;
+		get_fields deptDatabase;
+		call updateFields;
+	end_if;
+end;
+
+
+#Step 9:  Starting Up and Shutting Down
+#The startup function is responsible for filling 
+#the databases and displaying the first employee record 
+#and its department record.  The shutdown function closes 
+#and deletes the databases.
+
+function startup;
+	call openDatabases;
+	call fillEmpDatabase;
+	call fillDeptDatabase;
+	call displayRecord;
+end;
+
+
+function shutdown;
+	call closeDatabases;
+	call deleteDatabases;
+end;

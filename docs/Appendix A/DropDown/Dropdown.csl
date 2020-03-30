@@ -1,0 +1,49 @@
+#########################################################
+#
+#Dropdown
+#
+#From the book - Developing with CASL
+#
+#Copyright 2001 - 2002 Paul Schmid
+#
+#########################################################
+
+#Step 3:  Creating Global Variables
+#Create the selector's bound string array
+
+variables;
+	selArray[5] = "A","B","C","D","E";
+end;
+
+
+#Step 4:  Showing the Selector
+
+function displaySelector;
+	show selDropDown;
+end;
+
+
+#Step 5:  Displaying a Selection
+#The selector invokes the item_in_label 
+#function to place the selection into the label.
+
+function item_in_label;
+	lblItem.display = selDropDown.display;
+end;
+
+
+#Step 6:  Initializing the Selection
+#The initDropDown function initializes the 
+#dropdown by placing the first item of the 
+#selector list into the label.
+
+function initDropDown;
+	lblItem.display = selArray[0];
+end;
+
+
+#Step 7:  Starting Up
+
+function startup;
+	call initDropDown;
+end;

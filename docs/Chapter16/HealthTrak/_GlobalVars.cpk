@@ -1,0 +1,75 @@
+#########################################################
+#
+#HealthTrak
+#
+#_GlobalVars.cpk
+#
+#From the book - Developing with CASL
+#
+#Copyright 2001 - 2002 Paul Schmid
+#
+#########################################################
+
+#Step 3:  Adding Global Variables
+#The first variables section is for global variables.  
+#These are variables which are truly global in scope 
+#and can be called from anywhere in the program.  
+#Their names have been prefixed with the letter g for global.
+
+variables;
+	#current unit type - English or Metric
+	string g_UnitType;	
+
+	#draw lines on the chart if true(T)
+	#don't draw lines if false (F)
+	string g_DrawLines;
+
+	#name of the current user
+	string g_ActiveUserName = "";
+end;
+
+
+#Step 4:  Adding Selector List Arrays
+#The second variables section is for string arrays 
+#that are bound to selector objects.  These have 
+#been placed in the _GlobalVars.cpk file because 
+#their values can be modified from anywhere in the program.
+
+variables;
+	#the chart can display the following data
+	string CHART_CHOICES[5] = "Systolic",
+				   		  						"Diastolic",
+				   		  						"Pulse",
+				   		  						"Weight",
+				   		  						"Temperature";
+	
+	#selData selector displays 5 dates at a time
+	string SEARCH_DATES[5];
+
+	#Ten user names can be displayed in the 
+	#selUsers selector			
+	string USER_NAMES[10];
+end;
+
+
+#Step 5:  Adding Constants
+#The third variables section is for constants.  
+#They are global because they can be used anywhere 
+#within the project.  Constants are capitalized.
+
+variables;
+	#pixel width of a marker in the line chart
+	numeric LINE_MARKER_WIDTH = 3;
+
+	#the number of markers in the line chart
+	numeric MAX_LINE_MARKERS = 30;
+
+	#the lowest pixel position of a chart marker
+	numeric MIN_MARKER_POS = 129;
+
+	#the highest pixel position of a chart #marker
+	numeric MAX_MARKER_POS = 29;
+
+	#the max size of the selData selector
+	numeric SEL_SEARCH_SIZE = 5;
+end;

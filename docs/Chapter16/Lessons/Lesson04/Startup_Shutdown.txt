@@ -1,0 +1,19 @@
+#Step 1:  Starting Up
+#Create a startup function in the HealthTrak CSL 
+#file below the CPK include statements.
+
+function startup;
+	call openDB(userDB, "HealthUserDB");
+	call openDB(searchDB, "HealthSearchDB");
+	call openDB(chartDB, "HealthChartDB");
+end;
+
+#Step 2:  Shutting Down
+#Create a shutdown function in the HealthTrak 
+#CSL file below the startup function.
+
+function shutdown;
+	call closeDB(userDB);
+	call closeDB(searchDB);
+	call closeDB(chartDB);
+end;

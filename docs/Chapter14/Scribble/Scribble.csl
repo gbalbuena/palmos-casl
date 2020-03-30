@@ -1,0 +1,54 @@
+#########################################################
+#
+#Scribble
+#
+#From the book - Developing with CASL
+#
+#Copyright 2001 - 2002 Paul Schmid
+#
+#########################################################
+
+#Step 3:  Creating Global Variables
+
+variables;
+	numeric newX = 0;		#new X position of the line origin
+	numeric newY = 0;		#new Y position of the line origin
+	numeric oldX;				#previous X position of the line origin
+	numeric oldY;				#previous Y position of the line origin
+end;
+
+
+#Step 4:  Scribbling
+#The scribble function draws a line from the old 
+#pen position to the new pen position and repeats 
+#itself as fast as possible.
+
+function scribble;
+	#Set old position to new position
+	oldX = newX;
+	oldY = newY;
+
+	#get the latest pen position
+	newX = last_pen_x;
+	newY = last_pen_y;
+
+	#if the old positions are 0,0 indicating program startup
+	#and if the pen has not moved, don't draw a line
+	if (oldX <> 0 and oldY <> 0) and (oldX <> newX or oldY <> newY);
+		#draw line from old position to new position
+		set frmGraphics, pen, oldX, oldY;
+		draw frmGraphics,line,newX - oldX ,newY - oldY;
+	end_if;
+
+	#repeat this function
+	timer scribble, 0;
+end;
+
+
+#Step 5:  Starting Up
+#The startup function calls the scribble function.
+
+function startup;
+	call scribble;
+end;
+

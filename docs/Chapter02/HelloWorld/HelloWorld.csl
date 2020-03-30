@@ -1,0 +1,13 @@
+#########################################################
+#
+#Hello World
+#
+#From the book - Developing with CASL
+#
+#Copyright 2001 - 2002 Paul Schmid
+#
+#########################################################
+
+function greetings;
+	lblHelloWorld.display = "Hello World";
+end;

@@ -1,0 +1,191 @@
+#########################################################
+#
+#EasyDB
+#
+#From the book - Developing with CASL
+#
+#Copyright 2001 - 2002 Paul Schmid
+#
+#########################################################
+
+#Step 3:  Declaring the Database
+#A database object named database has been declared 
+#with three fields and a synchronization preference of none.  
+#The three database fields are declared as string variables.
+
+variables;
+	string fldKeyField;		#First database field
+	string fldTwo;			#Second database field
+	string fldThree;		#Third database field
+end;
+
+#Database declaration
+dbfile database;
+	field fldKeyField;
+	field fldTwo;
+	field fldThree;
+	sync_pref none;
+end;
+
+ 
+#Step 4:  Opening and Closing the Database
+#The openDatabase function opens a database file 
+#named easyDB.  The closeDatabase function closes 
+#all databases opened using the database template.
+
+function openDatabase;
+	open database, "easyDB";
+end;
+
+
+function closeDatabase;
+	close database;
+end;
+
+
+#Step 5:  Displaying the Record Position
+#The displayRecordPos function uses the predefined
+#bookmark variable to display the position of the record pointer.
+
+function displayRecordPos;
+	lblRecordPos.display = string(bookmark,"#");
+end;
+
+
+#Step 6:  Reading a Database Record
+#The readRecord function uses the GET_FIELDS method 
+#to set the field variables with the data from the current 
+#record and fills the text fields with the field variables.
+function readRecord;
+	#Read a record
+	get_fields database;
+	#Fill text fields
+	txtKeyField.display = fldKeyField;
+	txtFldTwo.display = fldTwo;
+	txtFldThree.display = fldThree;
+end;
+
+
+#Step 7:  Navigating Records
+#The four navigation buttons invoke these functions.
+
+#Move to and display the first record
+function firstRecord;
+	seek_start database, 0;
+	call readRecord;	
+	call displayRecordPos;
+end;
+
+ 
+#Move to and display the previous record
+function prevRecord;
+	if database.number_of_records > 0;
+		seek_here database, -1;
+		call readRecord;
+		call displayRecordPos;
+	end_if;
+end;
+
+#Move to and display the next record
+function nextRecord;
+	#Advance only if the record position being displayed is less
+	#than the number of records in the database
+	if (value(lblRecordPos.display) + 1) < database.number_of_records;
+		seek_here database, 1;
+		call readRecord;
+		call displayRecordPos;
+	end_if;
+end;
+
+#Move to and display the last record
+function lastRecord;
+	seek_end database, 1;
+	call readRecord;
+	call displayRecordPos;
+end;
+
+
+#Step 8:  Clearing the Text Fields
+#When invoked by the Clear button, the clearTextFields 
+#function puts empty strings in the text objects. 
+
+function clearTextFields;
+	txtKeyField.display = "";
+	txtFldTwo.display = "";
+	txtFldThree.display = "";
+end;
+
+
+#Step 9:  Adding a Record
+#The addRecord function adds a record to the 
+#database if given permission by the user.  
+#The prevRecord and nextRecord functions are 
+#called to update the position of the record pointer.
+
+function addRecord;
+	variables;
+		numeric response;
+	end;
+
+	#Prompt user to add record
+	response = message_box(0,"dbXibit",
+	 												 "Add this record?", 
+							 						 "YES","","NO");
+	#If user says yes, add the record
+	if response = 0;
+		fldKeyField = txtKeyField.display;
+		fldTwo = txtFldTwo.display;
+		fldThree = txtFldThree.display;
+		insert database;
+		#Move the record pointer
+		call prevRecord;
+		call nextRecord;
+	end_if;
+end;
+
+
+#Step 10:  Deleting a Record
+#The deleteRecord function deletes the current 
+#record if given permission by the user.  The prevRecord 
+#and nextRecord functions are called to read and display 
+#the record following the deleted record.
+
+function deleteRecord;
+	variables;
+		numeric response;
+	end;
+
+	#Does user give permission?
+	response = message_box(0,"dbXibit",
+													 "Delete this record?",
+													 "YES","","NO");
+	#If yes, delete record and display the following record
+	if response = 0;
+		remove database;
+		#Clear the text fields when the last record is deleted
+		if value(lblRecordPos.display) = 0;
+			call clearTextFields;
+		end_if;
+		#Show the previous record
+		call prevRecord;
+	end_if;
+end;
+
+
+#Step 11:  Starting Up and Shutting Down
+#The startup function is responsible for calling 
+#the functions that open the database, read
+#the last record, and display the current record position.  
+#The shutdown function closes the database.
+
+function startup;
+	call openDatabase;
+	call lastRecord;
+	call displayRecordPos;
+end;
+
+
+function shutdown;
+	close database;
+end;
+

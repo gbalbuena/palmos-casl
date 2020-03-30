@@ -1,0 +1,36 @@
+function no_Numbers;
+  variables;
+    numeric txtLength;	 #total length of text
+    numeric lastASCVal;	 #ASCII value of entered character
+    numeric cursorPos;	 #cursor position
+    string leftString;	 #string left of cursor
+    string rightString;	 #string right of cursor
+  end;
+
+  #get the length of the text in the text object
+  txtLength = length(txtTenChar.display);
+
+  #get the cursor position
+  cursorPos = txtTenChar.cursor;
+
+  #get the text to the left of the cursor which includes the newly
+  #entered character
+  leftString = left(txtTenChar.display,cursorPos);
+
+  #get the remaining characters to the right of the newly
+  #entered character
+  rightString = right(txtTenChar.display, txtLength - cursorPos);
+
+  #get the ASCII value of the last character in the left string
+  lastASCVal = asc(right(leftString,1));
+
+  #evaluate the ASCII value.  If it is a letter leave it be
+  #otherwise remove it
+  if lastASCVal >= 65 and lastASCVal <= 90;
+    #do nothing
+  else_if lastASCVal >= 97 and lastASCVal <= 122;
+    #do nothing
+  else;
+    txtTenChar.display = left(txtTenChar.display,cursorPos - 1) + rightString;
+  end_if;
+end;

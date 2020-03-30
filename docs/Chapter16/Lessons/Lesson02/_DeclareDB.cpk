@@ -1,0 +1,87 @@
+#########################################################
+#
+#HealthTrak
+#
+#_DeclareDB.cpk
+#
+#From the book - Developing with CASL
+#
+#Copyright 2001 - 2002 Paul Schmid
+#
+#########################################################
+
+#Step 2:  Creating Field Variables
+#Each of these variables are field definitions 
+#for the four HealthTrak databases.  All field 
+#definitions must be declared as variables before 
+#they can be used in a database declaration.
+
+variables;
+	string name;					#name of user
+	string sex;						#sex of user
+	string dateID;				#timestamp
+	string unitType;			#English or Metric
+	numeric chartData;  	#data point
+	numeric systolic;			#pressure data
+	numeric diastolic;		#pressure data
+	numeric pulse;				#pulse
+	numeric weight;				#weight
+	numeric temp;					#temperature
+	numeric init_Weight;	#weight of user
+	numeric init_Height;	#height of user
+	numeric init_age;			#age of user
+end;
+
+
+ 
+#Step 3:  Declaring DataDB
+#Declare the dataDB database object.
+
+dbfile dataDB;
+	field dateID;
+	field unitType;
+	field systolic;
+	field diastolic;
+	field pulse;
+	field weight;
+	field temp;
+	sync_pref none;
+end;
+
+
+#Step 4:  Declaring UserDB
+#Declare the userDB database object.
+
+dbfile userDB;
+	field name;
+	field sex;
+	field init_Weight;
+	field init_Height;
+	field init_age;
+	sync_pref none;
+end;
+
+
+#Step 5:  Declaring SearchDB
+#Declare the searchDB database object.
+
+dbfile searchDB;
+	field dateID;
+	field unitType;
+	field systolic;
+	field diastolic;
+	field pulse;
+	field weight;
+	field temp;
+	sync_pref none;
+end;
+
+
+#Step 6:  Declaring ChartDB
+#Declare the chartDB database object.
+
+dbfile chartDB;
+	field dateID;
+	field chartData;
+	sync_pref none;
+end;

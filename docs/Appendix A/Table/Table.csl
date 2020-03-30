@@ -1,0 +1,344 @@
+#########################################################
+#
+#Table
+#
+#From the book - Developing with CASL
+#
+#Copyright 2001 - 2002 Paul Schmid
+#
+#########################################################
+
+#Step 3:  Creating Global Variables
+
+variables;
+	string fldOne;						#First database field
+	string fldTwo;						#Second database field
+	string fldThree;					#Third database field
+	string fldFour;					#Fourth database field
+	string fldFive;					#Fifth database field
+	string fldSix;						#Sixth database field
+	string fldSeven;					#Seventh database field
+	numeric TABLE_SIZE_REC = 4;	#Number of table rows
+	numeric TABLE_SIZE_FLD = 4;	#Number of table columns
+	numeric currPageCount_REC;		#Current Vertical Page
+	numeric currPageCount_FLD;		#Current Horizontal Page
+end;
+
+
+#Step 4:  Declaring the Database
+#Create a seven-field database template named database.
+
+dbfile database;
+	field fldOne;
+	field fldTwo;
+	field fldThree;
+	field fldFour;
+	field fldFive;
+	field fldSix;
+	field fldSeven;
+	sync_pref none;
+end;
+
+
+#Step 5:  Manipulating the Database
+#These functions open, close, and delete a database named tableDB.
+
+function openDatabase;
+	open database, "tableDB";
+end;
+
+function closeDatabase;
+	close database;
+end;
+
+function deleteDatabase;
+	delete "tableDB";
+end;
+
+
+#Step 6:  Counting Records and Fields
+#These two functions return the number of 
+#records and the number of fields in the tableDB database.
+
+function databaseRecordCount as numeric;
+	databaseRecordCount = database.number_of_records;
+end;
+
+function databaseFieldCount as numeric;
+	databaseFieldCount = database.number_of_fields;
+end;
+
+
+#Step 7:  Filling the Database
+#The fillDatabase function adds a record 
+#of random numbers to the database.
+
+function fillDatabase;
+	variables;
+		string randomFieldVal[7];
+		numeric loopCounter;
+	end;
+
+	#Fill array with random numbers
+	for loopCounter = 0, loopCounter < 7;
+		randomFieldVal[loopCounter] = string(randomn(100),"#");
+	next loopCounter;
+
+	#Fill the field variables with the random numbers
+	fldOne = randomFieldVal[0];
+	fldTwo = randomFieldVal[1];
+	fldThree = randomFieldVal[2];
+	fldFour = randomFieldVal[3];
+	fldFive = randomFieldVal[4];
+	fldSix = randomFieldVal[5];
+	fldSeven = randomFieldVal[6];
+
+	#insert a record into the database
+	insert database;
+end;
+
+
+#Step 8:  Counting Vertical Pages
+#The totalPageCount_REC function determines how 
+#many "pages" it will take to display all database 
+#records in the table.  For example, if there are 32 
+#records and 4 can be displayed at once 32/4 or 8 pages 
+#would be required.
+
+function totalPageCount_REC as numeric;
+	variables;
+		numeric initCount;
+		numeric remainder;
+    end;
+
+	#calculate the "pages" 
+	#truncate the number to remove the fractional component
+	initCount = trunc(databaseRecordCount / TABLE_SIZE_REC);
+
+	#calculate if there will be any leftover records
+	remainder = databaseRecordCount % TABLE_SIZE_REC;
+
+	#if there are no leftover records subtract 
+	#a page to take into account the zero-based page count
+	if remainder > 0;
+		totalPageCount_REC = initCount;
+	else;
+		totalPageCount_REC = initCount - 1;
+	end_if;
+end;
+
+
+#Step 9:  Counting Horizontal Pages
+#The totalPageCount_FLD function determines how 
+#many "pages" it will take to display all the FIELDS 
+#in the table.  For example, if there are 7 fields 
+#and 4 can be displayed at once 7/4 or 1.75 rounded 
+#to 2 pages would be required.
+
+function totalPageCount_FLD as numeric;
+	variables;
+		numeric initCount;
+		numeric remainder;
+    end;
+
+	#calculate how many "pages"
+	#truncate the number to remove the fractional component
+	initCount = trunc(databaseFieldCount / TABLE_SIZE_FLD);
+
+	#calculate if there will be any leftover fields
+	remainder = databaseFieldCount % TABLE_SIZE_FLD;
+ 
+	#if there are no leftover fields subtract a 
+	#page to take into account the zero-based page count
+	if remainder > 0;
+		totalPageCount_FLD = initCount;
+	else;
+		totalPageCount_FLD = initCount - 1;
+	end_if;
+end;
+
+
+#Step 10:  Retrieving Records
+#The lastRecordPos function returns the number of 
+#records to read from the database given the 
+#current vertical page value.
+
+function lastRecordPos(numeric tablePage) as numeric;
+	variables;
+		numeric recordCount;
+    end;
+
+	recordCount = databaseRecordCount;
+
+	#is selectorPage the last selector page
+	if tablePage < totalPageCount_REC and recordCount >= TABLE_SIZE_REC;
+		lastRecordPos = TABLE_SIZE_REC;
+	else;
+		lastRecordPos = recordCount - (tablePage * TABLE_SIZE_REC);
+	end_if;
+end;
+
+
+#Step 11:  Retrieving Fields
+#The lastFieldPos function returns the number 
+#of records to read from the database given 
+#the current horizontal page value.
+
+function lastFieldPos(numeric tablePage) as numeric;
+	variables;
+		numeric fieldCount;
+    end;
+
+	fieldCount = databaseFieldCount;
+
+	#is selectorPage the last selector page
+	if tablePage < totalPageCount_FLD and fieldCount >= TABLE_SIZE_FLD;
+		lastFieldPos = TABLE_SIZE_FLD;
+	else;
+		lastFieldPos = fieldCount - (tablePage * TABLE_SIZE_FLD);
+	end_if;
+end;
+
+
+#Step 12:  Clearing the Table
+#The clearTable function places empty strings into each label.
+
+function clearTable;
+	variables;
+		numeric loopCounter;
+   end;
+
+	for loopCounter = 0, loopCounter < 16;
+		lblTable[loopCounter].display = "";
+	next loopCounter;
+end;
+
+
+#Step 13:  Updating the Table
+#The updateTable function updates the table 
+#with new data when any of the four directional 
+#buttons are tapped.
+
+function updateTable;
+	variables;
+		numeric begRecPos;		#First db record for current page
+		numeric endRecPos;		#Last db record for current page
+		numeric begFldPos;		#First db field for current page
+		numeric endFldPos;		#Last db field for current page
+		numeric rowCounter;		#Row loop counter
+		numeric fldCounter;		#Field loop counter
+		numeric fldIndex;		#Table column specifier
+		string fieldArray[7];	#Array to hold field values
+	end;
+
+	#Determine what records to get from the database
+	begRecPos = currPageCount_REC * TABLE_SIZE_REC;
+	endRecPos = lastRecordPos(currPageCount_REC);
+
+	#Determine what fields to get from the database
+	begFldPos = currPageCount_FLD * TABLE_SIZE_FLD;
+	endFldPos = begFldPos + lastFieldPos(currPageCount_FLD);
+
+	#move to the correct database record
+	seek_start database, begRecPos;
+
+	#populate the table
+	for rowCounter = 0, rowCounter < endRecPos;
+		get_fields database;
+		fieldArray[0] = fldOne;
+		fieldArray[1] = fldTwo;
+		fieldArray[2] = fldThree;
+		fieldArray[3] = fldFour;
+		fieldArray[4] = fldFive;
+		fieldArray[5] = fldSix;
+		fieldArray[6] = fldSeven;
+		fldIndex = 0;
+		
+ 
+		for fldCounter = begFldPos, fldCounter < endFldPos;
+			lblTable[rowCounter * 4 + fldIndex].display = fieldArray[fldCounter];
+			fldIndex = fldIndex + 1;
+		next fldCounter;
+	next rowCounter;
+end;
+
+
+#Step 14:  Initialize the Table
+#The initTable function sets the page counts 
+#to zero and updates the table.  When the page 
+#counts are zero, the table will contain the first 
+#four records and first four fields of the database.
+ 
+function initTable;
+	currPageCount_REC = 0;
+	currPageCount_FLD = 0;
+	call updateTable;
+end;
+
+
+#Step 15:  Navigating the Table
+#The directional buttons invoke these four functions.  
+#They adjust the page counts and call the updateTable 
+#function to fill the table with the appropriate records 
+#based on the page counts.
+
+function moveUp;
+	if currPageCount_REC > 0;
+		currPageCount_REC = currPageCount_REC - 1;
+		call clearTable;
+		call updateTable;
+	end_if;
+end;
+
+function moveDown;
+	if currPageCount_REC < totalPageCount_REC;
+		currPageCount_REC = currPageCount_REC + 1;
+		call clearTable;
+		call updateTable;
+	end_if;
+end;
+
+function moveLeft;
+	if currPageCount_FLD > 0;
+		currPageCount_FLD = currPageCount_FLD - 1;
+		call clearTable;
+		call updateTable;
+	end_if;
+end;
+
+ 
+function moveRight;
+	if currPageCount_FLD < totalPageCount_FLD;
+		currPageCount_FLD = currPageCount_FLD + 1;
+		call clearTable;
+		call updateTable;
+	end_if;
+end;
+
+
+#Step 16:  Starting Up
+#The startup function opens the database and calls 
+#functions to fill it with random numbers and fill 
+#the table with database records.
+
+function startup;
+	variables;
+		numeric loopCounter;
+	end;
+	call openDatabase;
+	#Adds ten records of random numbers to the database
+	for loopCounter = 0, loopCounter < 10;
+		call fillDatabase;
+	next loopCounter;
+	#Fill the table
+	call initTable;
+end;
+
+
+#Step 17:  Shutting Down
+#Close and delete the database.
+
+function shutdown;
+	call closeDatabase;
+	call deleteDatabase;
+end;

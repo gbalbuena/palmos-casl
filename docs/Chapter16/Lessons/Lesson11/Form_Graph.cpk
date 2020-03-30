@@ -1,0 +1,304 @@
+#########################################################
+#
+#HealthTrak
+#
+#Form_Graph.cpk
+#
+#From the book - Developing with CASL
+#
+#Copyright 2001 - 2002 Paul Schmid
+#
+#########################################################
+
+#Step 6:  Adding Module Level Variables
+#Add three module level variables to the top of the 
+#Form_LineChart.cpk file.  Since there are no module 
+#level variables in CASL, the variables have been prefixed 
+#with an m to indicate their intended scope.
+
+variables; 
+	#tracks which db records are shown in the line chart	
+	numeric m_currChartCount;
+	#the graduation of the Y axis
+	numeric m_Y_graduation;
+	#the numerical value of one pixel's height
+	numeric m_Y_pixelVal;
+end;
+
+#These variables determine where a data point is plotted on a chart.  
+#The equations below provide more information.
+
+#m_Y_graduation = largest data point (of the current 30) / 10 
+
+#m_Y_pixelVal = m_Y_graduation / 10
+
+#To determine the position of a data point with the value 10 
+#on the chart, divide the data point by m_Y_pixelVal.
+
+#For example, 
+
+#maximum data value of current chart = 20
+#m_Y_graduation = 20/10 = 2
+#m_Y_pixelVal = 2/10 = 0.2
+#position of data point = 10/0.2 = 50
+
+#In other words, halfway or 50 pixels up the 100-pixel-high Y axis.
+
+#Step 7:  Manipulating Data Markers
+#The 30-element button array is used to display the 
+#data points on the chart.  The following three 
+#functions manage these buttons.
+
+#The alignMarkers function equally spaces and aligns 
+#the buttons along the X axis just below the X axis button.  
+#This function could be eliminated if you carefully align 
+#the 30 buttons while designing the form.
+
+function alignMarkers;
+	variables;
+		numeric loopCounter;
+		numeric nStartPixel = 31;
+	end;
+
+	for loopCounter = 0, loopCounter < MAX_LINE_MARKERS;
+		btnSquare[loopCounter].x_position = nStartPixel + 
+																				loopCounter * LINE_MARKER_WIDTH;
+	next loopCounter;
+end;
+
+
+#The hideMarkers function hides all 30 buttons.  
+#If you do not hide the buttons before repositioning them, 
+#an image of the button will remain in the previous location.
+
+function hideMarkers;
+	variables;
+		numeric loopCounter;
+	end;
+
+	for loopCounter = 0, loopCounter < MAX_LINE_MARKERS;
+		btnSquare[loopCounter].hidden = true;
+	next loopCounter;
+end;
+
+
+function showMarker(numeric index);
+	btnSquare[index].hidden = false;
+end;
+
+
+#The moveMarker function adjusts the Y axis position 
+#of a button.  It is passed two elements.  Index determines 
+#which button in the array will be moved and dataPoint is the 
+#amount of pixels it should be placed above the X axis.
+ 
+function moveMarker(numeric dataPoint, numeric index);
+	variables;
+		numeric nMarkerPos;
+	end;
+	nMarkerPos = MIN_MARKER_POS - dataPoint;
+	if nMarkerPos < MAX_MARKER_POS;
+		btnSquare[index].y_position = MAX_MARKER_POS;
+	else_if nMarkerPos > MIN_MARKER_POS;
+		btnSquare[index].y_position = MIN_MARKER_POS;
+	else;
+		btnSquare[index].y_position = nMarkerPos;
+	end_if;
+end;
+
+
+#Step 8:  Creating Y Axis Values
+#The fill_Y_AxisLabels function fills the labels along the Y axis.
+ 
+function fill_Y_AxisLabels;
+	variables;
+		numeric loopCounter;
+	end;
+	for loopCounter = 0, loopCounter < 10;
+		lblYVal[loopCounter].display = string(m_Y_graduation
+												*(loopCounter+1),
+												"#.##");
+	next loopCounter;
+end;
+
+
+#Step 9:  Drawing Lines
+#Given two values and a button index, the drawLines 
+#function will draw a line between button[index - 1] and button[index].
+
+function drawLines(numeric firstPoint, 
+									 numeric secondPoint, 
+									 numeric index);
+	variables;
+		numeric X_Origin = 32;
+		numeric X_Offset;
+		numeric Y_Origin;
+		numeric Y_Offset;
+	end;
+		
+	#set the line origin
+	if (index - 1) = 0;
+		Y_Origin = MIN_MARKER_POS - firstPoint/m_Y_pixelVal;
+		set frmLineChart,pen,X_Origin,Y_Origin;
+	end_if;
+
+	#X and Y offset
+	X_Offset = LINE_MARKER_WIDTH;
+	Y_Offset = (MIN_MARKER_POS - secondPoint/m_Y_pixelVal) - 
+  																	(MIN_MARKER_POS - firstPoint/m_Y_pixelVal);
+	#draw from origin to offset
+	draw frmLineChart,line,X_Offset,Y_Offset;
+	#reset pen to next data point
+	set frmLineChart,pen,(X_Origin + index * LINE_MARKER_WIDTH),
+   											(MIN_MARKER_POS - secondPoint/m_Y_pixelVal);
+end;
+
+
+#Step 10:  Displaying Data on the Line Chart
+#The fillLineChart function is invoked when the LineChart 
+#form is opened.  It reads the ChartDB database and uses the 
+#functions in steps 7 and 9 to move the markers and draw 
+#lines between them.
+
+function fillLineChart;
+	variables;
+		numeric begPos;
+		numeric endPos;
+		numeric loopCounter;
+		numeric dataArray[30];
+		numeric maxDataPoint = 0;
+	end;
+
+	begPos = m_currChartCount * MAX_LINE_MARKERS;
+	endPos = currRecCount(chartDB, m_currChartCount, MAX_LINE_MARKERS);
+
+	#move to the correct database record
+	seek_start chartDB, begPos;
+
+	#fill the local dataArray
+	for loopCounter = 0, loopCounter < endPos;
+		get_fields chartDB;
+		dataArray[loopCounter] = chartData;
+		#find the maximum data point
+		if chartData > maxDataPoint;
+			maxDataPoint = chartData;
+		end_if;
+	next loopCounter;
+
+	#calculate the Y scale's graduation
+	m_Y_graduation = maxDataPoint/10;
+
+	#calculate the Y pixel value where the marker should
+	#be moved
+	m_Y_pixelVal = m_Y_graduation/10;
+
+	#reposition the first marker since this is not done
+	#in the loop below
+	call moveMarker(dataArray[0]/m_Y_pixelVal, 0);
+	call showMarker(0);
+
+	#move the remaining markers and draw lines between them
+	for loopCounter = 1, loopCounter < endPos;
+		call moveMarker(dataArray[loopCounter]/m_Y_pixelVal,loopCounter);
+		call showMarker(loopCounter);
+		if g_drawLines = "Y";
+			call drawLines(dataArray[loopCounter - 1],
+																				dataArray[loopCounter],loopCounter);
+		end_if;
+	next loopCounter;
+end;
+
+
+#Step 11:  Updating Line Chart Data
+#Each time the chart is redrawn the frame must be 
+#refreshed to remove any images of the lines and markers 
+#remaining from their previous positions.
+
+function refreshFrame;
+	hide frmLineChart;
+	show frmLineChart;
+end;
+
+
+#The right-arrow button invokes the upChart function.  
+#The upChart function updates the chart's page count and 
+#provides the chart with a new set of records from the 
+#ChartDB database.
+
+function upChart;
+	if m_currChartCount < totalPageCount(chartDB,MAX_LINE_MARKERS);
+		m_currChartCount = m_currChartCount + 1;
+		hide btnLine_X_Axis;
+		call hideMarkers;
+		clear frmLineChart,line,0,0;
+		call refreshFrame;
+		call fillLineChart;
+		show btnLine_X_Axis;
+	end_if;
+end;
+
+
+#The left-arrow button invokes the downChart function.  
+#The downChart function updates the chart's page count and 
+#provides the chart with a new set of records from the 
+#ChartDB database.
+
+function downChart;
+	if m_currChartCount > 0;
+		m_currChartCount = m_currChartCount - 1;
+		hide btnLine_X_Axis;
+		call hideMarkers;
+		clear frmLineChart,line,0,0;
+		call refreshFrame;
+		call fillLineChart;
+		show btnLine_X_Axis;
+	end_if;
+end;
+
+
+#Step 12:  Showing the Line Chart Form
+#If there is sufficient data in the SearchDB database, 
+#the showLineChartForm function will open the LineChart 
+#form and draw the chart.  It begins by initializing the chart's 
+#page count to zero and displaying the first 30 records.
+
+function showLineChartForm;
+	variables;
+		numeric recordCount;
+		numeric response;
+	end;
+
+	lblSearching.hidden = false;
+	call validateSearchDates;
+	call fillSearchDB(startDate, endDate);
+	recordCount = DB_Recordcount(searchDB);
+	lblSearching.hidden = true;
+	if recordCount > 0;
+		hide frmChooseData;
+		show frmLineChart;
+		frmLineChart.display = "Line Chart - " + selData.display;
+		call fillChartDB;
+		call alignMarkers;
+		#reset the current chart count
+		m_currChartCount = 0;
+		call fillLineChart;
+		call fill_Y_AxisLabels;
+		show btnLine_X_Axis;
+	else;
+		response = message_box(0,"HealthTrak",
+														 "Insufficient Data",
+														 "","OK","");
+	end_if;
+end;
+
+
+#Step 13:  Hiding the Line Chart Form
+#This function hides the line chart form.
+
+function hideLineChartForm;
+	hide frmLineChart;
+	hide btnLine_X_Axis;
+	call hideMarkers;
+	clear frmLineChart,line,0,0;
+	show frmChooseData;
+end;

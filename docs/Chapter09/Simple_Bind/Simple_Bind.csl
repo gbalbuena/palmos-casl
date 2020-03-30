@@ -1,0 +1,109 @@
+#########################################################
+#
+#Simple_Bind
+#
+#From the book - Developing with CASL
+#
+#Copyright 2002 Paul Schmid
+#
+#########################################################
+
+
+#Step 3:  Declaring the Database
+#Create a three-field database object named dbOne.
+
+variables;
+	string fldOne;
+	string fldTwo;
+	string fldThree;
+end;
+
+dbfile dbOne;
+	field fldOne;
+	field fldTwo;
+	field fldThree;
+	sync_pref none;
+end;
+
+
+#Step 4:  Populating the Database
+#The populateDB function will fill the database 
+#fields with a column indicator (C1, C2, or C3) 
+#plus a random number.
+
+function populateDB;
+	variables;
+		numeric loopCounter;
+	end;
+
+	#Add 20 records to the database
+	for loopCounter = 0, loopCounter < 20;
+		#populate the database fields
+		fldOne = "C1" + string(randomn(1000),"000#");
+		fldTwo = "C2" + string(randomn(1000),"000#");
+		fldThree = "C3" + string(randomn(1000),"000#");
+		#insert a record
+		insert dbOne;
+	next loopCounter;
+end;
+
+
+#Step 5:  Switching Databases
+#The Switch DB button invokes the switchDB function.  
+#It controls which database is bound to the grid by 
+#opening a different database using the dbOne object.  
+#The database opened last will be the currently 
+#bound database.
+
+function switchDB;
+	#Read the database displayed in the label and open
+	#the opposite database
+	if lblDB.display = "First_DB";
+		open dbOne, "Second_DB";
+		lblDB.display = "Second_DB";
+	else_if lblDB.display = "Second_DB";
+		open dbOne, "First_DB";
+		lblDB.display = "First_DB";
+	end_if;
+
+	#refresh the grid
+	show grdOne;
+end; 
+
+
+#Step 6:  Starting Up and Shutting Down
+#The startup function opens two databases and 
+#populates them if necessary.  Since the second 
+#database is opened last, it will be the bound database.
+
+#The shutdown function closes the databases.
+
+function startup;
+	#open the first database
+	open dbOne, "First_DB";
+
+	#populate the first database if necessary
+	if dbOne.number_of_records = 0;
+		call populateDB;
+	end_if;
+
+	#open the second database
+	open dbOne, "Second_DB";
+ 
+	#populate the second database if necessary
+	if dbOne.number_of_records = 0;
+		call populateDB;
+	end_if;
+
+	#show that Second_DB is the active database
+	lblDB.display = "Second_DB";
+	
+	#refresh the grid
+	show grdOne;
+end;
+
+
+function shutdown;
+	#close the databases
+	close dbOne;
+end;

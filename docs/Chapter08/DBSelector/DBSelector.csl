@@ -1,0 +1,230 @@
+#########################################################
+#
+#DBSelector
+#
+#From the book - Developing with CASL
+#
+#Copyright 2001 - 2002 Paul Schmid
+#
+#########################################################
+
+#Step 3:  Creating Global Variables
+
+variables;
+	string arrayAlpha[6];	#Array bound to selector
+	string letter;				#database field
+	numeric currPageCount;	#current selector page
+end;
+
+
+#Step 4:  Creating Constants
+
+variables;
+	#selector display size
+	numeric SEL_DISPLAY_SIZE = 6; 
+end;
+
+
+#Step 5:  Declaring the Database
+
+dbfile databaseAlpha;
+	field letter;
+	sync_pref none;
+end;
+
+
+#Step 6:  Counting Records
+#The DB_RecordCount function is passed a 
+#database object and returns the amount of 
+#records in the object's open database.
+
+function DB_RecordCount(object dbObject) as numeric;
+	DB_RecordCount = dbObject.number_of_records;
+end;
+
+ 
+#Step 7:  Sizing the Selector
+#The totalPageCount function determines how 
+#many "pages" it will take to display all of 
+#the database records in the selector.  
+#For example, if there are 30 records and 5 
+#can be displayed at once, 30/5 or 6 pages would be required.
+
+function totalPageCount(object dbObject, 
+numeric bufferSize) as numeric;
+	variables;
+		numeric initCount;
+		numeric remainder;
+   end;
+
+	#calculate how many "pages" are required to display all
+	#database records in a selector
+
+	#the initial page count
+	initCount = trunc(DB_RecordCount(dbObject) / bufferSize);
+
+	#calculate leftover records
+	remainder = DB_RecordCount(dbObject) % bufferSize;
+
+	#if there are no leftover records subtract a page for
+	#the zero-based page count
+	if remainder > 0;
+		totalPageCount = initCount;
+	else;
+		totalPageCount = initCount - 1;
+	end_if;
+end;
+
+
+#Step 8:  How many records to read
+#The currRecCount function returns the 
+#position of the last record to retrieve 
+#from the database given the current page value 
+#and display size.  For example, on the last 
+#selector page only two letters will be 
+#displayed, Y and Z.  The currRecCount function 
+#will return 2 in this case.
+
+function currRecCount(object dbObject, 
+ 						numeric currentPage, 
+ 						numeric displaySize) as numeric;
+	variables;
+		numeric recordCount;
+    end;
+
+	recordCount = DB_RecordCount(dbObject);
+ 
+	if currentPage < totalPageCount(dbObject,displaySize) and 
+													recordCount >= displaySize;
+		currRecCount = displaySize;
+	else;
+		currRecCount = recordCount - (currentPage * displaySize);
+	end_if;
+end;
+
+
+#Step 9:  Clearing the Selector
+#The clearSelector function clears the 
+#selector by filling its bound string array with empty strings.
+
+function clearSelector;
+	variables;
+		numeric loopCounter;
+	end;
+
+	for loopCounter = 0, loopCounter < SEL_DISPLAY_SIZE;
+		arrayAlpha[loopCounter] = "";
+	next loopCounter;
+end;
+
+
+#Step 10:  Refreshing the Selector
+#To update the selector with new content, 
+#refresh it using the HIDE and SHOW methods.
+
+function refreshSelector;
+	hide selAlphabet;
+	show selAlphabet;
+end;
+
+
+#Step 11:  Filling the Selector
+#The fillSelector function loops through the 
+#database and fills the selector's string array 
+#with the appropriate amount of records based 
+#on the current selector page.
+
+function fillSelector;
+	variables;
+		numeric endPos;
+		numeric begPos;
+		numeric loopCounter;
+	end;
+
+	#first and last record to get based on page count
+	begpos = currPageCount * SEL_DISPLAY_SIZE;
+	endPos = currRecCount(databaseAlpha, 
+ 							currPageCount, 
+ 							SEL_DISPLAY_SIZE);
+
+	#move to first record of current "page"
+	seek_start databaseAlpha, begPos;
+
+	#fill the array
+	for loopCounter = 0, loopCounter < endPos;
+		get_fields databaseAlpha;
+		arrayAlpha[loopCounter] = letter;
+	next loopCounter;
+
+	#set selector to display 6 or less
+	selAlphabet.list_size = endPos;
+end;
+
+
+#Step 12:  Scrolling through the Selector
+#The moveUp and moveDown functions are 
+#invoked by the up and down buttons.  
+#They adjust the selector's contents and page count.
+
+function moveUp;
+	if currPageCount > 0;
+		currPageCount = currPageCount - 1;
+		call clearSelector;
+		call fillSelector;
+		call refreshSelector;
+	end_if;
+end;
+
+
+function moveDown;
+	if currPageCount < totalPageCount(databaseAlpha, 
+ 										SEL_DISPLAY_SIZE);
+		currPageCount = currPageCount + 1;
+		call clearSelector;
+		call fillSelector;
+		call refreshSelector;
+	end_if;
+end;
+
+
+#Step 13:  Filling the Database
+#The fillDB function fills the database with the alphabet.
+
+function fillDB;
+	variables;
+		numeric loopCounter;
+	end;
+
+	for loopCounter = 65, loopCounter < 91;
+		letter = char(loopCounter);
+		insert databaseAlpha;
+	next loopCounter;
+end;
+
+
+#Step 14:  Starting Up and Shutting Down
+#The startup function opens the database, 
+#fills it with letters, and displays the 
+#first six letters in the selector.  
+#The shutdown function closes the database.
+
+function startup;
+	open databaseAlpha, "dbAlpha";
+
+	if databaseAlpha.number_of_records <= 0;
+		call fillDB;
+	end_if;
+
+	#reset the current page count to zero
+	currPageCount = 0;
+	#Display the first 6 letters
+	call clearSelector;
+	call fillSelector;
+	call refreshSelector;
+end;
+
+#closes the database
+function shutdown;
+	close databaseAlpha;
+end;
+

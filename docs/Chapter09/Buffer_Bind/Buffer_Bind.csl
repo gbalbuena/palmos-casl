@@ -1,0 +1,189 @@
+#########################################################
+#
+#Buffer_Bind
+#
+#From the book - Developing with CASL
+#
+#Copyright 2002 Paul Schmid
+#
+#########################################################
+
+
+#Step 3:  Declaring the Database
+#Declare three database objects.  The dbBuffer object 
+#will be bound to the grid.  The dbOne and dbTwo 
+#objects will not be bound to the grid but their 
+#records will be copied to the dbBuffer database.
+
+variables;
+	string fldOne_Buff;
+	string fldTwo_Buff;
+	string fldOne_One;
+	string fldTwo_One;
+	string fldThree_One;
+	string fldOne_Two;
+	string fldTwo_Two;
+	string fldThree_Two;
+	string fldFour_Two;
+end;
+
+
+dbfile dbBuffer;
+	field fldOne_Buff;
+	field fldTwo_Buff;
+	sync_pref none;
+end;
+
+
+dbfile dbOne;
+	field fldOne_One;
+	field fldTwo_One;
+	field fldThree_One;
+	sync_pref none;
+end;
+
+
+dbfile dbTwo;
+	field fldOne_Two;
+	field fldTwo_Two;
+	field fldThree_Two;
+	field fldFour_Two;
+	sync_pref none;
+end; 
+
+
+#Step 4:  Populating the Databases
+#The populateDB function fills the dbOne 
+#and dbTwo databases with records indicating 
+#the database, column, and row - DB# C# R#.
+
+function populateDB(object objDB);
+	variables;
+		numeric loopCounter;
+	end;
+
+	for loopCounter = 0, loopCounter < 20;
+		if objDB = dbOne;
+			#Populate database fields
+			fldOne_One = "DB1 C1" + "R" + string(loopCounter,"0#");
+			fldTwo_One = "DB1 C2" + "R" + string(loopCounter,"0#");
+			fldThree_One = "DB1 C3" + "R" + string(loopCounter,"0#");
+			#Add a record
+			insert dbOne;
+		else_if objDB = dbTwo;
+			#Populate database fields
+			fldOne_Two = "DB2 C1" + "R" + string(loopCounter,"0#");
+			fldTwo_Two = "DB2 C2" + "R" + string(loopCounter,"0#");
+			fldThree_Two = "DB2 C3" + "R" + string(loopCounter,"0#");
+			fldFour_Two = "DB2 C4" + "R" + string(loopCounter,"0#");	
+			#Add a record
+			insert dbTwo;
+		end_if;
+	next loopCounter;
+end; 
+
+
+#Step 5:  Clearing the Buffer Database
+#The clearBuffer function deletes and reopens 
+#the buffer database in order to clear its records.
+
+function clearBuffer;
+	#close the buffer DB
+	close dbBuffer;
+	#delete the buffer DB
+	delete "Buffer";
+	#open the buffer DB
+	open dbBuffer, "Buffer";
+end;
+
+
+#Step 6:  Filling the Buffer Database
+#The fillBuffer function clears the buffer database 
+#and fills it with records from either dbOne or dbTwo.
+
+function fillBuffer(object objDB);
+	variables;
+		numeric loopCounter;
+	end;
+	
+	#Clear the buffer database
+	call clearBuffer;
+
+	#Move to the first database record
+	seek_start objDB, 0;
+
+	#Copy 20 records from dbOne or dbTwo to the buffer 
+	#database
+	for loopCounter = 0, loopCounter < 20;
+		get_fields objDB;
+		if objDB = dbOne;
+			fldOne_Buff = fldOne_One;
+			fldTwo_Buff= fldTwo_One;
+		else_if objDB = dbTwo;
+			fldOne_Buff = fldThree_Two;
+			fldTwo_Buff= fldFour_Two;
+		end_if;
+		insert dbBuffer;
+	next loopCounter;
+end;
+
+
+#Step 7:  Switching Databases
+#The Switch DB button invokes the switchDB function.  
+#It switches the contents of the grid from dbOne 
+#records to dbTwo records.
+
+function switchDB;
+	#read the database displayed in the label and open
+	#the opposite database
+	if lblDB.display = "dbOne";
+		call fillBuffer(dbTwo);
+		lblDB.display = "dbTwo";
+	else_if lblDB.display = "dbTwo";
+		call fillBuffer(dbOne);
+		lblDB.display = "dbOne";
+	end_if;
+
+	#refresh the grid
+	show grdOne;
+end;
+
+
+#Step 8:  Starting Up and Shutting Down
+#The startup function opens the databases and populates 
+#dbOne and dbTwo databases if necessary.  It then fills 
+#the dbBuffer database with records from the dbOne database.  
+#The grid will display the dbOne records when it is refreshed.
+
+#The shutdown function closes the databases.
+
+function startup;
+	#open the databases
+	open dbBuffer, "Buffer";
+	open dbOne, "One";
+	open dbTwo, "Two";
+
+	#populate databases One and Two if necessary
+	if dbOne.number_of_records = 0;
+		call populateDB(dbOne);
+	end_if;
+	if dbTwo.number_of_records = 0;
+		call populateDB(dbTwo);
+	end_if;
+
+	#fill buffer DB with dbOne fields
+	call fillBuffer(dbOne);
+
+	lblDB.display = "dbOne";
+
+	#refresh the grid
+	show grdOne;
+end;
+
+
+function shutdown;
+	#close the databases
+	close dbBuffer;
+	close dbOne;
+	close dbTwo;
+end;

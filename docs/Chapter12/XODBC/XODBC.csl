@@ -1,0 +1,212 @@
+###############################################################
+#
+#APP:  		XODBC
+#Date:		11-FEB-2002
+#Email:		software@jowst.com
+#Version:	0.2
+#
+#Copyright 2001 - 2002 Paul Schmid
+###############################################################
+
+#----------------------------------------------
+#Global variables
+#----------------------------------------------
+variables;
+	string fieldOne;
+	string fieldTwo;
+	string fieldThree;
+	string fieldFour;
+	numeric dbSelection; #determines active database for inserting and deleting
+end;
+
+
+#----------------------------------------------
+#forward reference
+#----------------------------------------------
+function clearText(numeric idx);
+end;
+
+
+#----------------------------------------------
+#cpk include reference
+#----------------------------------------------
+include "database.cpk";
+
+
+#----------------------------------------------
+#initializes form objects
+#and sets dbSelection variable to database 1
+#----------------------------------------------
+function formInit;
+	chkTable.checkbox = true;
+	dbSelection = 1;
+	txtDSN.display = dbOne.data_source_name;
+	chkTable[1].display = "Table 2 Records";
+end;
+
+
+#----------------------------------------------
+#clears the text fields and sets
+#record counts to zero
+#----------------------------------------------
+function clearText(numeric idx);
+	variables;
+		numeric counter;
+	end;
+
+	if idx = 1;
+		for counter = 0, counter < 4;
+			txtFldOne[counter].display = "";
+		next counter;
+		lblRecordCountOne.display = "0";
+	end_if;
+	
+	if idx = 2;
+		for counter = 0, counter < 4;
+			txtFldTwo[counter].display = "";
+		next counter;
+		lblRecordCountTwo.display = "0";
+	end_if;
+end;
+
+
+#----------------------------------------------
+#count number of records in a database
+#----------------------------------------------
+function recordCount(numeric idx);
+	if idx = 1;
+		lblRecordCountOne.display = string(dbOne.number_of_records,"#");
+	end_if;
+	if idx = 2;
+		lblRecordCountTwo.display = string(dbTwo.number_of_records,"#");
+	end_if;
+end;
+
+
+#----------------------------------------------
+#update DSN text box when switching between
+#Table 1 and Table 2 databases
+#----------------------------------------------
+function updateDSN(numeric idx);
+	if idx = 1;
+		txtDSN.display = dbOne.data_source_name;
+	end_if;
+	if idx = 2;
+		txtDSN.display = dbTwo.data_source_name;
+	end_if;
+end;
+
+
+#----------------------------------------------
+#determines which database checkbox is true
+#and sets global dbSelection variable
+#----------------------------------------------
+function dbChoice;
+	if invokersub = 0;
+		chkTable[1].checkbox = false;
+		dbSelection = 1;
+		call updateDSN(1);
+	end_if;
+
+	if invokersub = 1;
+		chkTable[0].checkbox = false;
+		dbSelection = 2;
+		call updateDSN(2);
+	end_if;
+end;
+
+
+#----------------------------------------------
+#add a record to the database
+#----------------------------------------------
+function addData;
+	call openDB(dbSelection);
+	call setFields(dbSelection);
+	call insertData(dbSelection);
+	call recordCount(dbSelection);
+	call closeDB(dbSelection);
+end;
+
+
+#----------------------------------------------
+#changes the Data Source Name of the database
+#----------------------------------------------
+function changeDSN;
+	variables;
+		numeric response;
+		string dsn;
+	end;
+
+	dsn = txtDSN.display;
+
+	response = message_box(0,"XODBC",
+														"Change DSN for database # " + 
+														string(dbSelection,"#") +  
+														" to " + dsn + " ?" ,
+														"","YES","NO");
+
+	if response = 1;
+		if length(txtDSN.display) <= 31;
+			if dbSelection = 1;
+				dbOne.data_source_name = dsn;
+				opendb(1);
+			  closedb(1);
+			end_if;
+			if dbSelection = 2;
+				dbTwo.data_source_name = dsn;
+				#the database must be opened and closed for the dsn change to take effect
+				opendb(2);
+				closedb(2);
+			end_if;
+		else;
+			response = message_box(0,"XODBC","The DSN must be 31 characters or less.","","OK","");
+		end_if;
+	end_if;
+end;
+
+
+#----------------------------------------------
+#initialize labels and get first records from
+#the databases
+#----------------------------------------------
+function startup;
+	call formInit;
+
+	call openDB(1);
+	call setFields(1);
+	call displayFields(1);
+	call recordCount(1);
+	call closeDB(1);
+	
+	call openDB(2);
+	call setFields(2);
+	call displayFields(2);
+	call recordCount(2);
+	call closeDB(2);
+end;
+
+
+#----------------------------------------------
+#Menu bar items
+#----------------------------------------------
+menu_top topMenu1;
+	display "Help";
+end;
+
+menu_item item1, topMenu1;
+	display "About";
+	invokes displayAbout;
+end;
+
+function displayAbout;
+	variables;
+		numeric response;
+	end;
+
+	response = message_box(0,"XODBC Version 0.2",
+													"www.jowst.com" + char(10) +
+													"Feb. 2002" + char(10) +
+													"software@jowst.com",
+													"","OK","");
+end;
+

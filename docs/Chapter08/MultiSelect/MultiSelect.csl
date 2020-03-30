@@ -1,0 +1,76 @@
+#########################################################
+#
+#MultiSelect
+#
+#From the book - Developing with CASL
+#
+#Copyright 2001 - 2002 Paul Schmid
+#
+#########################################################
+
+#Step 3:  Creating A Global String Array
+#The contents of this global string array will appear in the selector.
+
+variables;
+	string myArray[6] = "A","B","C","D","E","F";
+end;
+
+
+#Step 4:  Setting Multiple Selections
+#The setSelection function will place an asterisk 
+#and underscore (*_) in front of a selected element.
+
+function setSelection;
+	variables;
+		numeric selIndex;	#the selected index
+	end;
+
+	#get the selected index
+	selIndex = selTest.selected;
+
+	#check to see if selection already has *_ indicator
+	if left(selTest.display,2) <> "*_";
+		#modify the array value for that index
+		myArray[selIndex] = "*_" + selTest.display;
+	else;
+		#remove the indicator
+		myArray[selIndex] = right(selTest.display,
+  length(selTest.display)-2);
+	end_if;
+
+	#refresh the selector
+	hide selTest;
+	show selTest;
+end;
+
+
+#Step 5:  Displaying Selections
+#The displayResults function loops through 
+#the selector contents placing any element 
+#with an asterisk as its first character into 
+#the resultsArray.  The resultsArray contents 
+#are then displayed in a label.
+
+function displayResults;
+	variables;
+		numeric loopCounter;
+		string resultsArray[6]; #holds selected elements
+	end;
+
+	#clear the label
+	lblDisplay.display = "";
+
+	#Loop though selector placing selected elements in
+	#a label
+	for loopCounter = 0, loopCounter < selTest.list_size;
+		selTest.selected = loopCounter;
+		if left(selTest.display,2) = "*_";
+	resultsArray[loopCounter] = right(selTest.display,
+	 length(selTest.display)-2);
+	lblDisplay.display = lblDisplay.display + 
+	char(13) + 
+	resultsArray[loopCounter];
+		end_if;
+	next loopCounter;
+end;
+

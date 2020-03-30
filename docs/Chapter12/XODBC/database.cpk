@@ -1,0 +1,215 @@
+###############################################################
+#CPK:		database
+#
+#APP:  		XODBC
+#
+#Date:		11-FEB-2002
+#email:		software@jowst.com
+#Version:	0.2
+#
+#Copyright 2001 - 2002 Paul Schmid
+###############################################################
+
+
+#----------------------------------------------
+#Database declarations
+#----------------------------------------------
+dbfile dbOne;
+	field fieldOne;
+	field fieldTwo;
+	field fieldThree;
+	field fieldFour;
+	sync_pref merge;
+	data_source_name "CaslAccess";
+end;
+
+
+dbfile dbTwo;
+	field fieldOne;
+	field fieldTwo;
+	field fieldThree;
+	field fieldFour;
+	sync_pref merge;
+	data_source_name "CaslAccess";
+end;
+
+
+#----------------------------------------------
+#displays the field variables in the text boxes
+#----------------------------------------------
+function displayFields(numeric idx);
+
+	if idx = 1;
+		seek_start dbOne, 0;
+		get_fields dbOne;
+	
+		txtFldOne[0].display = fieldOne;
+		txtFldOne[1].display = fieldTwo;
+		txtFldOne[2].display = fieldThree;
+		txtFldOne[3].display = fieldFour;
+	end_if;
+
+	if idx = 2;
+		seek_start dbTwo, 0;
+		get_fields dbTwo;
+	
+		txtFldTwo[0].display = fieldOne;
+		txtFldTwo[1].display = fieldTwo;
+		txtFldTwo[2].display = fieldThree;
+		txtFldTwo[3].display = fieldFour;
+	end_if;
+
+end;
+
+
+#----------------------------------------------
+#set the field variables with the text box data
+#----------------------------------------------
+function setFields(numeric idx);
+
+	if idx = 1;
+		fieldOne = txtFldOne[0].display;
+		fieldTwo = txtFldOne[1].display;
+		fieldThree = txtFldOne[2].display;
+		fieldFour = txtFldOne[3].display;
+	end_if;
+
+	if idx = 2;
+		fieldOne = txtFldTwo[0].display;
+		fieldTwo = txtFldTwo[1].display;
+		fieldThree = txtFldTwo[2].display;
+		fieldFour = txtFldTwo[3].display;
+	end_if;
+
+end;
+
+
+#----------------------------------------------
+#closes the databases
+#----------------------------------------------
+function closeDB(numeric idx);
+
+	variables;
+		numeric response;
+	end;
+
+	#reset errorcode
+	errorcode = 0;
+
+	if idx = 1;
+		close dbOne;
+	end_if;
+	if idx = 2;
+		close dbTwo;
+	end_if;
+
+	if errorcode <> 0;
+		response = message_box(0,"XODBC",
+															"Database # " + 
+															string(idx,"#") + 
+															" close error",
+															"","OK","");
+	end_if;
+
+end;
+
+
+#----------------------------------------------
+#opens the databases
+#----------------------------------------------
+function openDB(numeric idx);
+
+	variables;
+		numeric response;
+	end;
+
+	#reset errorcode
+	errorcode = 0;
+
+	if idx = 1;
+		open dbOne, "TableOne";
+	end_if;
+	if idx = 2;
+		open dbTwo, "TableTwo";
+	end_if;
+
+	if errorcode <> 0;
+		response = message_box(0,"XODBC",
+															"Database # " + 
+															string(idx,"#") + 
+															" open error",
+															"","OK","");
+	end_if;
+
+end;
+
+
+#----------------------------------------------
+#deletes the database
+#----------------------------------------------
+function deleteDB;
+
+	variables;
+		numeric response;
+	end;
+
+	response = message_box(0,"XODBC",
+														"Delete database # " + 
+														string(dbSelection,"#") + " ?",
+														"","YES","NO");
+
+	if response = 1;
+
+		#reset errorcode
+		errorcode = 0;
+	
+		if dbSelection = 1;
+			delete "TableOne";
+			call clearText(1);
+		end_if;
+		if dbSelection = 2;
+			delete "TableTwo";
+			call clearText(2);
+		end_if;
+		
+		if errorcode <> 0;
+			response = message_box(0,"XODBC",
+																"Database # " + 
+																string(dbSelection,"#") + 
+																" delete error","","OK","");
+		end_if;
+
+	end_if;
+
+end;
+
+
+#----------------------------------------------
+#inserts data into the database
+#----------------------------------------------
+function insertData(numeric idx);
+
+	variables;
+		numeric response;
+	end;
+
+	#reset errorcode
+	errorcode = 0;
+
+	if idx = 1;
+		put_fields dbOne;
+	end_if;
+	if idx = 2;
+		put_fields dbTwo;
+	end_if;
+
+	if errorcode <> 0;
+		response = message_box(0,"XODBC",
+															"Database # " + 
+															string(idx,"#") + 
+															" insert error",
+															"","OK","");
+	end_if;
+
+end;
+

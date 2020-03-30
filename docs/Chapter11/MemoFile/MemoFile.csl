@@ -1,0 +1,138 @@
+#########################################################
+#
+#MemoFile
+#
+#From the book - Developing with CASL
+#
+#Copyright 2001 - 2002 Paul Schmid
+#
+#########################################################
+
+#Step 3:  Creating Global Variables
+
+variables;
+string recordArray[100];
+string catArray[3] = "Unfiled", "Business", "Personal";
+end;
+
+
+#Step 4:  Declaring a File
+
+file memo_file;
+end;
+
+
+#Step 5:  Opening and Closing a File
+#These functions open and close the Memo Pad file.
+
+function openFile;
+    open memo_file, "MemoDB";
+end;
+
+function closeFile;
+    close memo_file;
+end;
+
+
+#Step 6:  Filling the Memo Selector
+#The fillMemoSelector function fills the selMemoRecs 
+#selector object with a list of numbers that match 
+#the amount of memos in the Memo Pad file.
+
+function fillMemoSelector;
+	variables;
+		numeric numRecords;
+		numeric loopCounter;
+	end;
+
+	numRecords = memo_file.number_of_records;
+
+	#Clear the array
+	for loopCounter = 0, loopCounter < numRecords;
+	     recordArray[loopCounter] = "";
+	next loopcounter;
+	
+	#Fill the bound string array with numbers
+	for loopCounter = 0, loopCounter < numRecords;
+	     recordArray[loopCounter] = string(loopCounter + 1, "#");
+	next loopcounter;
+	
+	#Display in the selector
+	selMemoRecs.list = recordArray;
+	selMemoRecs.list_size = numRecords;
+	#Refresh the selector
+	show selMemoRecs;
+end;
+
+
+#Step 7:  Setting the Memo Category
+#Invoked by the Set Cat button, the setMemoCategory 
+#function sets the category of a record before it 
+#is added to the Memo Pad file.
+
+function setMemoCategory;
+	variables;
+	     numeric response;
+	end;
+	
+	if selCats.display = "Unfiled";
+	     response = set_category(0);
+	else_if selCats.display = "Business";
+	     response = set_category(1);
+	else_if selCats.display = "Personal";
+	     response = set_category(2);
+	end_if;
+end;
+
+
+#Step 8:  Reading the Memo
+#Invoked by the Get Memo button, the getMemoRecord function 
+#reads a record from the Memo Pad file and displays the record's memo, 
+#category index, and category name.
+
+function getMemoRecord;
+	variables;
+	     string memo_string;
+	end;
+	
+	#Move to the selected record in the Memo Pad file
+	seek_start memo_file, selMemoRecs.selected;
+	
+	#Read the record's memo
+	get memo_file, memo_String;
+	#Display the memo
+	txtMemo.display = memo_String;
+	#Display the memo's category index and name
+	lblCatIndex.display = string(get_category(),"#");
+	lblCatString.display = get_category_string;
+end;
+
+
+#Step 9:  Adding a Memo
+#Invoked by the Add Memo button, the addMemoRecords 
+#function adds a new memo record to the end of the Memo Pad file.
+
+function addMemoRecord;
+	#Move to the end of the Memo Pad file
+	seek_end memo_file, 0;
+	#Add a memo record
+	insert memo_file, txtMemo.display;
+	#Refresh the memo selector
+	call fillMemoSelector;
+end;
+
+
+#Step 10:  Starting Up and Shutting Down
+#The startup function opens the Memo Pad file and fills 
+#the selectors.  The shutdown function closes the Memo Pad file.
+
+function startup;
+	show selCats;
+	call openFile;
+  call fillMemoSelector;
+end;
+
+
+function shutDown;
+   call closeFile;
+end;

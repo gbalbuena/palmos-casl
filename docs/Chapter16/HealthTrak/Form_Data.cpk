@@ -1,0 +1,112 @@
+#########################################################
+#
+#HealthTrak
+#
+#Form_Data.cpk
+#
+#From the book - Developing with CASL
+#
+#Copyright 2001 - 2002 Paul Schmid
+#
+#########################################################
+
+#Step 8:  Updating Form Fields
+#The updateDataLabels function is invoked 
+#when the Data form is opened and when the 
+#units have been changed from the menu.  
+#It makes sure the labels are displaying 
+#the user specified units.
+
+#The clearDataFields function is invoked when 
+#the Data form is opened in New mode and after 
+#data entry to ready the text fields for more input.
+
+function updateDataLabels;
+	lblUnits_D[0].display = "mm Hg";
+	lblUnits_D[1].display = "mm Hg";
+	lblUnits_D[2].display = "pulse/min";
+	lblUnits_D[3].display = "lbs";
+	lblUnits_D[4].display = char(176) + "F";
+	#Metric
+	if g_UnitType = "Met";
+		lblUnits_D[3].display = "kg";
+		lblUnits_D[4].display = char(176) + "C";
+	end_if;
+end;
+
+
+function clearDataFields;
+	txtSystolic.display = "";
+	txtDiastolic.display = "";
+	txtPulse.display = "";
+	txtWeight_D.display = "";
+	txtTemp.display = "";
+	#set focus on systolic field
+	txtSystolic.focused = true;
+end;
+
+
+#Step 9:  Opening the Data Form in New Mode
+#Opens the data form in New mode.
+
+function showDataForm_New;
+	hide frmIntro;
+	show frmData;
+	#set focus on systolic field
+	txtSystolic.focused = true;
+	frmData.display = "New Data";
+	call clearDataFields;
+	call updateDataLabels;
+end;
+
+
+#Step 10:  Opening the Data Form in Edit Mode
+#The showDataForm_Edit function is invoked from the 
+#ChooseData form introduced in Lesson 10.  
+#To open the Data form in Edit mode, the user must 
+#search and select a record from the ChooseData form.  
+#Once the record has been selected, the Data form will 
+#open in Edit mode allowing the contents of the record 
+#to be modified.
+
+function showDataForm_Edit;
+	variables;
+		numeric response;
+		string sDate;
+	end;
+
+	#dateID from the selector
+	sDate = dateTranslation(selData.display);
+	if foundRecord(searchDB, sDate) = 0;
+		get_fields searchDB;
+		call getDataFields;
+		hide frmChooseData;
+		show frmData;
+		#focus on the systolic field
+		txtSystolic.focused = true;
+		frmData.display = "Edit Data";
+		call updateDataLabels;
+	else;
+		response = message_box(0,"HealthTrak",
+														 "Record not found.",
+														 "","OK","");
+	end_if;
+end;
+
+
+ 
+#Step 11:  Hiding the Data Form
+#If the Data form is in New mode the user will be 
+#sent back to the Intro form.  If the form is in 
+#Edit mode, the user will be sent back to the 
+#ChooseData form.
+
+function hideDataForm;
+	if frmData.display = "New Data";
+		hide frmData;
+		show frmIntro;
+	else_if frmData.display = "Edit Data";
+		hide frmData;
+		show frmChooseData;
+	end_if;
+end;

@@ -1,0 +1,177 @@
+#########################################################
+#
+#Shared_Grid_1
+#
+#From the book - Developing with CASL
+#
+#Copyright 2002 Paul Schmid
+#
+#########################################################
+
+
+#Step 3:  Declaring the Database
+#Declare two database objects, one with three 
+#fields and another with five fields.
+
+variables;
+	string fldOne_One;
+	string fldTwo_One;
+	string fldThree_One;
+	string fldOne_Two;
+	string fldTwo_Two;
+	string fldThree_Two;
+	string fldFour_Two;
+end;
+
+
+dbfile dbOne;
+	field fldOne_One;
+	field fldTwo_One;
+	field fldThree_One;
+	sync_pref none;
+end;
+
+
+dbfile dbTwo;
+	field fldOne_Two;
+	field fldTwo_Two;
+	field fldThree_Two;
+	field fldFour_Two;
+	sync_pref none;
+end; 
+
+
+#Step 4:  Label the Checkboxes
+#Place the names of the database objects in the checkbox displays.
+
+function labelCheckboxes;
+	chkDatabase[0].display = "dbOne";
+	chkDatabase[1].display = "dbTwo";
+end;
+
+
+#Step 5:  Populating the Databases
+#Populate the databases with records if necessary.  
+#The fields indicate database number, column number, 
+#and row number - # C# R#
+
+function populateDB(object objDB);
+	variables;
+		numeric loopCounter;
+	end;
+
+	for loopCounter = 0, loopCounter < 20;
+		if objDB = dbOne;
+			fldOne_One = "1 C1" + "R" + string(loopCounter,"0#");
+			fldTwo_One = "1 C2" + "R" + string(loopCounter,"0#");
+			fldThree_One = "1 C3" + "R" + string(loopCounter,"0#");
+			insert dbOne;
+		else_if objDB = dbTwo;
+			fldOne_Two = "2 C1" + "R" + string(loopCounter,"0#");
+			fldTwo_Two = "2 C2" + "R" + string(loopCounter,"0#");
+			fldThree_Two = "2 C3" + "R" + string(loopCounter,"0#");
+			fldFour_Two = "2 C4" + "R" + string(loopCounter,"0#");	
+			insert dbTwo;
+		end_if;
+	next loopCounter;
+end;
+
+
+#Step 6:  Creating Radio Buttons
+#The radioBehavior function makes the checkboxes behave 
+#like radio buttons so only one can be true at a time.  
+#It also refreshes the grid to update it with the records 
+#from the selected database.
+
+function radioBehavior;
+	if invokersub = 0;
+		chkDatabase[0].checkbox = true;
+		chkDatabase[1].checkbox = false;
+	else_if invokersub = 1;
+		chkDatabase[0].checkbox = false;
+		chkDatabase[1].checkbox = true;
+	end_if;
+
+	#refresh the grid
+	show grdOne;
+end;
+
+
+#Step 7:  Set the Number of Data Rows
+#The setDataRows function sets the grid's NUMBER_OF_DATA_ROWS property.  
+#Since the data source is unbound, this is necessary for the grid 
+#to be able to scroll through all the database records.
+
+function setDataRows(object objDB);
+	grdOne.number_of_data_rows = objDB.number_of_records;
+end;
+
+
+#Step 8:  Loading Database Records
+#The loadRecords function is invoked by the Row Loaded event.  
+#It loads the records from the selected database each time 
+#the grid is refreshed or scrolled.
+
+function loadRecords;
+	#Decide which database to load based on the checkbox
+	if chkDatabase[0].checkbox = 1;
+		#Position the record pointer
+		seek_start dbOne, grdOne.bookmark + invokersub;
+		#Read the record
+		get_fields dbOne;
+		#Populate the grid
+		txtOne[invokersub].display = fldOne_One;
+		txtTwo[invokersub].display = fldTwo_One;
+		txtThree[invokersub].display = fldThree_One;
+		txtFour[invokersub].display = "";
+	else_if chkDatabase[1].checkbox = 1;
+		seek_start dbTwo, grdOne.bookmark + invokersub;
+		get_fields dbTwo;
+		txtOne[invokersub].display = fldOne_Two;
+		txtTwo[invokersub].display = fldTwo_Two;
+		txtThree[invokersub].display = fldThree_Two;
+		txtFour[invokersub].display = fldFour_Two;
+	end_if;
+end; 
+
+
+#Step 9:  Starting Up and Shutting Down
+#The startup function opens the databases and populates 
+#them if necessary.  It then loads the grid with records 
+#from the dbOne database.
+
+#The shutdown function closes the databases.
+
+function startup;
+	#open the databases
+	open dbOne, "Shared_One";
+	open dbTwo, "Shared_Two";
+
+	#populate databases One and Two if necessary
+	if dbOne.number_of_records = 0;
+		call populateDB(dbOne);
+	end_if;
+
+	if dbTwo.number_of_records = 0;
+		call populateDB(dbTwo);
+	end_if;
+
+	#label the checkboxes
+	call labelCheckboxes;
+
+	#place check in first checkbox
+	chkDatabase[0].checkbox = 1;
+
+	#Set the data rows for the grid
+	call setDataRows(dbOne);
+
+	#refresh the grid
+	show grdOne;
+end;
+
+
+function shutdown;
+	#close the databases
+	close dbOne;
+	close dbTwo;
+end;

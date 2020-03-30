@@ -1,0 +1,128 @@
+#########################################################
+#
+#TwoD_Array
+#
+#From the book - Developing with CASL
+#
+#Copyright 2001 - 2002 Paul Schmid
+#
+#########################################################
+
+#Step 3:  Declaring a Database
+#The rowIndex field represents the rows of the 
+#2D array and each element of the colIndex field 
+#represents the columns of the 2D array.  Figure 10-11 
+#illustrates this concept.
+
+
+variables;
+     numeric rowIndex;		#Row index
+     numeric colIndex[4];	#Column index
+end;
+
+#Database declaration
+dbfile array_2D;
+     field rowIndex;
+     field colIndex;
+     sync_pref none;
+end;
+
+
+#Step 4:  Opening, Closing, and Deleting
+#These three functions open, close, and delete a database named dataGrid.
+
+function open2D_Array;
+      open array_2D, "dataGrid";
+end;
+
+function close2D_Array;
+close array_2D;
+end;
+
+function delete2D_Array;
+delete "dataGrid";
+end;
+
+
+#Step 5:  Filling the 2D Array
+#Before you can use the database as a 2D array, 
+#you need to populate it with records.  Similar 
+#to populating a real 2D array, the fillArray function 
+#uses nested FOR-NEXT loops to fill the rows and columns of the database.
+
+function fillArray;	
+variables;
+     numeric rowCounter;
+     numeric colCounter;
+end;
+
+for rowCounter = 0, rowCounter < 6;
+     rowIndex = rowCounter;
+     for colCounter = 0, colCounter < 4;
+          colIndex[colCounter] = (rowCounter * 4) + colCounter;
+     next colCounter;
+     insert array_2D;
+next rowCounter;
+end;
+
+
+#Step 6:  Modifying the Array
+#The modifyArrayData function modifies each element 
+#in the 2D array by doubling its value.  Again, a nested 
+#FOR-NEXT structure is used to overwrite the records with the modified values.
+
+function modifyArrayData;
+	variables;
+		numeric rowCounter;
+		numeric colCounter;
+	end;
+
+	for rowCounter = 0, rowCounter < 6;
+	seek_start array_2D, rowCounter;
+	rowIndex = rowCounter;
+		for colCounter = 0, colCounter < 4;
+		     colIndex[colCounter] = ((rowCounter*4)+colCounter)*2;
+		next colCounter;
+	put_fields array_2D;
+	next rowCounter;
+end;
+
+
+ 
+#Step 7:  Displaying the Array Data
+#The displayArrayData function uses a nested 
+#FOR-NEXT structure to loop through the database and display the records.
+
+function displayArrayData;
+	variables;
+		numeric rowCounter;
+		numeric colCounter;
+	end;
+
+	for rowCounter = 0, rowCounter < 6;
+	seek_start array_2D, rowCounter;
+	get_fields array_2D;
+		for colCounter = 0, colCounter < 4;
+			txtArrayVal[(rowCounter * 4) + colCounter].display =
+			string(colIndex[colCounter],"#");
+		next colCounter;
+	next rowCounter;
+end;
+
+
+#Step 8:  Starting Up and Shutting Down
+#The startup function calls the functions to manipulate 
+#and display the database records.  The shutdown function 
+#closes and deletes the database.
+
+function startup;
+	call open2D_Array;
+	call fillArray;
+	call modifyArrayData;
+	call displayArrayData;
+end;
+
+function shutdown;
+	call close2D_Array;
+	call delete2D_Array;
+end;

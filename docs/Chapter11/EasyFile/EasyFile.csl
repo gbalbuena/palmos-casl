@@ -1,0 +1,180 @@
+#########################################################
+#
+#EasyFile
+#
+#From the book - Developing with CASL
+#
+#Copyright 2001 - 2002 Paul Schmid
+#
+#########################################################
+
+#Step 3:  Declaring Global Variables
+
+variables;
+	#note the dollar sign in the byte array declaration
+	numeric byteArray[5]$;	#Five byte array
+	string stringVal[5];		#String array
+end;
+
+
+#Step 4:  Declaring Files
+#Declare two files.  One for Byte array data and
+#one for string data.
+
+file file_ByteArray;
+end;
+
+file file_String;
+end;
+
+
+#Step 5:  Opening, Closing, and Deleting Files
+#These functions open, close, and delete the files.
+
+function openByteFile;
+     open file_ByteArray, "ByteArray.txt";
+end;
+
+function closeByteFile;
+     close file_ByteArray;
+end;
+
+function openStringFile;
+     open file_String, "String.txt";
+end;
+
+function closeStringFile;
+     close file_String;
+end;
+
+ 
+function deleteByteFile;
+     delete "ByteArray.txt";
+end;
+
+function deleteStringFile;
+     delete "String.txt";
+end;
+
+
+#Step 6:  Reading the Byte Array File
+#The read_ByteArray function reads a record 
+#into a byte array variable and displays each 
+#element of the byte array.  It also calculates 
+#the amount of bytes read from the record.
+
+function read_ByteArray;
+	variables;
+	     numeric loopCounter;
+	end;
+
+	#Open the file	
+	call openByteFile;
+	#Move to the first record
+	seek_start file_ByteArray, 0;
+	#Read the record
+	get file_ByteArray, byteArray;
+	#Get number of bytes read
+	txtBytesReadByte.display = string(Bytesread,"#");
+	#Display each element of the byte array
+	for loopCounter = 0, loopCounter < 5;
+	     txtByte[loopCounter].display = string(byteArray[loopCounter],"#");
+	next loopCounter;
+	#Close the file
+	call closeByteFile;
+end;
+
+
+#Step 7:  Read the String Array File
+#The read_String function reads the first five 
+#records of the string file and displays the records.  
+#It also calculates the amount of bytes read from all five records.
+
+function read_String;
+	variables;
+		numeric loopCounter;
+		numeric totalBytesRead;
+	end;
+
+	#Open the file	
+	call openStringFile;
+	#Move to the first record
+	seek_start file_String, 0;
+	 
+	for loopCounter = 0, loopCounter < 5;
+		#Read the record
+		get file_String, stringVal[loopCounter];
+		#Display the record
+		txtString[loopCounter].display = stringVal[loopCounter];
+		#Sum the bytes read
+		totalBytesRead = totalBytesRead + Bytesread;
+	next loopCounter;
+	#Display the bytes read
+	txtBytesReadString.display = string(totalBytesRead,"#");
+	#Close the file
+	call closeStringFile;
+end;
+
+
+#Step 8:  Writing the Byte Array File
+#The write_ByteArray function writes the 
+#byte array variable to a new file.
+
+function write_ByteArray;
+	variables;
+	     numeric loopCounter;
+	end;
+
+	#Delete the file
+	call deleteByteFile;
+	#Open a new file
+	call openByteFile;
+	#Put text elements into the byte array elements
+	for loopCounter = 0, loopCounter <5;
+		byteArray[loopCounter] = value(txtByte[loopCounter].display);
+	next loopCounter;
+	#Add the record
+	put file_ByteArray, byteArray;
+	#Close the file
+	call closeByteFile;
+end;
+
+
+#Step 9:  Writing the String Array File
+#The write_String function adds five string records to a new file.
+
+function write_String;
+	variables;
+	     numeric loopCounter;
+	end;
+
+	#Delete the file
+	call deleteStringFile;
+	#Open a new file
+	call openStringFile;
+	 
+	#Add five string records
+	for loopCounter = 0, loopCounter < 5;
+	     put file_String, txtString[loopCounter].display;
+	next loopCounter;
+
+	#Close the file
+	call closeStringFile;
+end;
+
+
+#Step 10:  Starting Up and Shutting Down
+#The startup function calls the functions to read 
+#and display the file contents.  The shutdown 
+#function calls the functions to write the files.
+
+function startup;
+call read_ByteArray;
+call read_String;
+end;
+
+
+function shutdown;
+call write_ByteArray;
+call write_String;
+end;

@@ -1,0 +1,178 @@
+#########################################################
+#
+#Dropdown
+#
+#From the book - Developing with CASL
+#
+#Copyright 2002 Paul Schmid
+#
+#########################################################
+
+
+#Step 3:  Declaring Global Variables
+#Create the string array that will be bound to the dropdown object.
+
+variables;
+	string stringArray[20];
+end;
+
+
+#Step 4:  Populating the Array
+#Populate the array with ten elements at startup 
+#so the dropdown list will not be empty.
+
+function populateArray;
+	variables;
+		numeric loopCounter;
+	end;
+
+	for loopCounter = 0, loopCounter < 10;
+		stringArray[loopCounter] = string(loopCounter + 1,"0#");
+	next loopCounter;
+end;
+
+
+#Step 5:  Retrieving the Dropdown Index
+#The dropdownIndex function finds the index of the 
+#selected item in the dropdown list.  In a selector, 
+#this would be done with the SELECTED property.  However, 
+#the dropdown object does not have this property.
+
+function dropdownIndex(string element) as numeric;
+	variables;
+		numeric loopCounter = 0;
+		numeric continueLoop = true;
+	end;
+
+	while continueLoop = true and loopCounter < 20;
+		if stringArray[loopCounter] = element;
+			dropdownIndex = loopCounter;
+			continueLoop = false;
+		end_if;
+		loopCounter = loopCounter + 1;
+	end_while;
+end;
+
+
+#Step 6:  Counting Array Elements
+#The arrayCount function counts the number of 
+#elements that are in the dropdown's string array.
+
+function arrayCount as numeric;
+	variables;
+		numeric loopCounter;
+	end;
+
+	arrayCount = 0;
+
+	for loopCounter = 0, loopCounter < 20;
+		if length(stringArray[loopCounter])> 0;
+			arrayCount = arrayCount + 1;
+		end_if;
+	next loopCounter;
+end;
+
+
+#Step 7:  Inserting an Array Value
+#The insertArrayElement function adds the text in 
+#the dropdown's text field to the stringArray.
+
+function insertArrayElement;
+	variables;
+		numeric response;
+	end;
+
+	#Add the item if the array count is under 20
+	#otherwise display a message
+	if arrayCount < 20;
+		stringArray[arrayCount] = ddList.display;
+	else;
+		response = message_box(0,"Dropdown",
+ "The list is full",
+ "","OK","");
+	end_if;
+
+	#Refresh the dropdown
+	show ddList;
+end;
+
+
+#Step 8:  Removing an Array Element
+#The removeArrayElement function removes the item in 
+#the dropdown's text field from the stringArray.
+
+function removeArrayElement;
+	variables;
+		numeric loopCounter;
+		numeric index;
+	end;
+
+	#get the index of the element being deleted
+	index = dropdownIndex(ddList.display);
+
+	#move the remaining array elements up one index
+	for loopCounter = index, loopCounter < 19;
+		stringArray[loopCounter] = stringArray[loopCounter + 1];
+	next loopCounter;
+
+	#Clear the last element
+	stringArray[19] = "";
+
+	#Refresh the dropdown
+	show ddList;
+end;
+
+
+#Step 9:  Labeling the Keypad
+#The labelKeypad function places numbers on the keypad buttons.
+
+function labelKeypad;
+	variables;
+		numeric loopCounter;
+	end;
+
+	for loopCounter = 0, loopCounter < 10;
+		btnKey[loopCounter].display = string(loopCounter,"#");
+	next loopCounter;
+end;
+
+
+#Step 10:  Sending Keystrokes
+#The sendKeys function sends keystrokes from 
+#the buttons to the dropdown's text field.
+
+function sendKeys;
+	if invoker = btnClear;
+		ddList.display = "";
+	else;
+		ddList.display = ddList.display + string(invokersub,"#");
+	end_if;
+end;
+
+
+#Step 11:  Changing Dropdown Input Mode
+#The changeInput function changes the dropdown's No Input 
+#property from true to false.  When true, text can only be 
+#entered into the dropdown's text field using the keypad.
+
+function changeInput;
+	if chkNoInput.checkbox = true;
+		ddList.no_input = true;
+	else;
+		ddList.no_input = false;
+	end_if;
+end;
+
+
+#Step 12:  Starting Up
+#The startup function calls the functions that initialize the application. 
+
+function startup;
+	#Fill the string array
+	call populateArray;
+	#Label the keypad buttons
+	call labelKeypad;
+	#Refresh the dropdown
+	show ddList;
+end;
+

@@ -1,0 +1,72 @@
+#########################################################
+#
+#HealthTrak
+#
+#DB_Chart.cpk
+#
+#From the book - Developing with CASL
+#
+#Copyright 2001 - 2002 Paul Schmid
+#
+#########################################################
+
+#Step 4:  Populating the ChartDB Database
+#The insertChartData function gets the appropriate 
+#field from a SearchDB database record and inserts 
+#it into the ChartDB database.
+
+function insertChartData (numeric category);
+	if category = 0;
+		chartData = systolic;
+	else_if category = 1;
+		chartData = diastolic;
+	else_if category = 2;
+		chartData = pulse;
+	else_if category = 3;
+		chartData = weight;
+	else_if category = 4;
+		chartData = temp;
+	end_if;
+
+	if chartData > 0;
+		insert chartDB;
+	end_if;
+end;
+
+
+#The fillChartDB function prepares the ChartDB 
+#database to be filled with records.  It then sends 
+#the requested data category (systolic, etc…) to the 
+#insertChartData function which inserts the record.
+
+function fillChartDB;
+	variables;
+		numeric dataCategory;
+		numeric recordCount;
+		numeric loopCounter;
+	end;
+
+	#close the chartDB in case it is open
+	call closeDB(chartDB);
+
+	#delete the previous chartDB
+	call deleteDB("HealthChartDB");
+
+	call openDB(chartDB,"HealthChartDB");
+
+	#the data to display
+	dataCategory = selData.selected;
+
+	recordCount = DB_RecordCount(searchDB);
+
+	#move to the first record
+	seek_start searchDB, 0;
+
+	#loop through the searchDB getting the data
+	#from the selected category and placing the
+	#data in the chartDB database if it is valid
+	for loopCounter = 0, loopCounter < recordCount;
+		get_fields searchDB;
+		call insertChartData(dataCategory);
+	next loopCounter;
+end;

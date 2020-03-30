@@ -1,0 +1,54 @@
+#########################################################
+#
+#HealthTrak
+#
+#DB_Search.cpk
+#
+#From the book - Developing with CASL
+#
+#Copyright 2001 - 2002 Paul Schmid
+#
+#########################################################
+
+#Step 3:  Filling the SearchDB Database
+#The fillSearchDB function is passed two dates.  
+#It uses these dates to find records in the DataDB database.  
+#Any DataDB records with a dateID field in the range of the two 
+#dates are copied into the SearchDB database.
+
+function fillSearchDB(string firstDate, string lastDate);
+	variables;
+		numeric continueLoop;
+		string startDate;
+		string endDate;
+		string firstTime = "000000"; #time of 12 AM
+	end;
+
+	call closeDB(searchDB);
+
+	#delete previous searchDB records
+	call deleteDB("HealthSearchDB");
+
+	call openDB(searchDB,"HealthSearchDB");
+
+	#modify start and end dates
+	startDate = firstDate + firstTime;
+	endDate = dateTranslation(lastDate);
+
+	#decide whether or not to enter the loop
+	#-5 is end of file
+	if foundRecord(dataDB, startDate) <> -5;
+		continueLoop = true;
+	else;
+		continueLoop = false;
+	end_if;
+
+	while continueLoop = true;
+		get_fields dataDB;
+		if value(dateID) <= value(endDate) and errorcode <> -5;
+			insert searchDB;
+		else;
+			continueLoop = false;
+		end_if;
+	 end_while;
+end;

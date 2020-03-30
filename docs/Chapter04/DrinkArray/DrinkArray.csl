@@ -1,0 +1,53 @@
+#########################################################
+#
+#DrinkArray
+#
+#From the book - Developing with CASL
+#
+#Copyright 2001 - 2002 Paul Schmid
+#
+#########################################################
+
+#Step 3:  Creating Global Variables
+#Declare a five-element global string array.
+
+variables;
+	string refreshment[5];
+end;
+
+#Step 4:  Populating the Array
+#The load_refreshments function populates the array with drink names.
+
+function load_refreshments;
+	refreshment[0] = "Cola";
+	refreshment[1] = "Root Beer";
+	refreshment[2] = "Lemonade";
+	refreshment[3] = "Water";
+	refreshment[4] = "Orange Juice";
+end;
+
+
+#Step 5:  Displaying the Array Elements
+#The array is passed to the displayRefreshments 
+#function through the drinkarray[] parameter.  
+#Each element of the array is displayed in a label.
+
+function displayRefreshments(string drinkArray[]);
+	lblDrink[0].display = drinkArray[0];
+	lblDrink[1].display = drinkArray[1];
+	lblDrink[2].display = drinkArray[2];
+	lblDrink[3].display = drinkArray[3];
+	lblDrink[4].display = drinkArray[4];
+end;
+
+
+#Step 6:  Starting Up
+#The startup function calls the functions that 
+#populate and display the array elements.  
+#The refreshment string array is passed to 
+#the displayRefreshments function without the use of brackets.
+
+function startup;
+	call load_refreshments;
+	call displayrefreshments(refreshment);
+end;

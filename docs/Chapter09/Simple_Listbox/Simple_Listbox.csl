@@ -1,0 +1,133 @@
+#########################################################
+#
+#Simple_Listbox
+#
+#From the book - Developing with CASL
+#
+#Copyright 2002 Paul Schmid
+#
+#########################################################
+
+
+#Step 3:  Declaring Global Variables
+#The CHOICES array is bound to the second column of 
+#the grid and stores the list of options.  The SELECTIONS 
+#array is bound to the first column of the grid and stores 
+#the checkbox values (0 or 1).  CHOICE_COUNT is the maximum 
+#amount of choices that can appear in the grid.
+
+variables;
+	numeric SELECTIONS[10];		
+	string CHOICES[10];
+	numeric CHOICE_COUNT = 10;
+end;
+
+
+#Step 4:  Creating Radio Buttons
+#The radioBehavior function makes the checkboxes 
+#in the grid behave as radio buttons so only one 
+#can be checked at a time.
+
+function radioBehavior;
+	if invokersub = 0;
+		chkOne[0].checkbox = true;
+		chkOne[1].checkbox = false;
+		chkOne[2].checkbox = false;
+		chkOne[3].checkbox = false;
+	else_if invokersub = 1;
+		chkOne[0].checkbox = false;
+		chkOne[1].checkbox = true;
+		chkOne[2].checkbox = false;
+		chkOne[3].checkbox = false;
+	else_if invokersub = 2;
+		chkOne[0].checkbox = false;
+		chkOne[1].checkbox = false;
+		chkOne[2].checkbox = true;
+		chkOne[3].checkbox = false;
+	else_if invokersub = 3;
+		chkOne[0].checkbox = false;
+		chkOne[1].checkbox = false;
+		chkOne[2].checkbox = false;
+		chkOne[3].checkbox = true;
+	end_if;
+end;
+
+
+#Step 5:  Filling the CHOICES Array
+#The loadChoices function fills the CHOICES array with 
+#random values that will appear in the second column of the grid.
+
+function loadChoices;
+	variables;
+		numeric loopCounter;
+	end;
+
+	for loopCounter = 0, loopCounter < CHOICE_COUNT;
+		CHOICES[loopCounter] = "C" + string(randomn(500),"#");
+	next loopCounter;
+end;
+
+
+#Step 6:  Clearing the SELECTIONS Array
+#The clearSelections function writes a zero to every 
+#element of the SELECTIONS array, erasing any stored selections.
+
+function clearSelections;
+	variables;
+		numeric loopCounter;
+	end;
+	
+	for loopCounter = 0, loopCounter < CHOICE_COUNT;
+		SELECTIONS[loopCounter] = 0;
+	next loopCounter;
+end;
+
+
+#Step 7:  Updating the SELECTIONS Array
+#The updateSelections function updates an element of the 
+#SELECTIONS array with a zero or one depending on the 
+#value of the corresponding checkbox.  
+
+function updateSelections;
+	if chkSelections.checkbox = false;
+		call clearSelections;
+		call radioBehavior;
+		SELECTIONS[invokersub + grdOne.bookmark] =  
+																chkOne[invokersub].checkbox;
+	else;
+		SELECTIONS[invokersub + grdOne.bookmark] = 
+																chkOne[invokersub].checkbox;
+	end_if;
+end;
+
+
+#Step 8:  Displaying Selections
+#The OK button invokes the fillSelectionText function.  
+#This function places the selected choices from the grid 
+#into the text field.
+
+function fillSelectionText;
+	variables;
+		numeric loopCounter;
+	end;
+
+	#clear existing label text
+	txtSelections.display = "";
+	
+	for loopCounter = 0, loopCounter < CHOICE_COUNT;
+		if SELECTIONS[loopCounter] = true;
+			txtSelections.display = txtSelections.display + 
+			CHOICES[loopCounter] + char(10);
+		end_if;
+	next loopCounter;
+end;
+
+
+#Step 9:  Starting Up
+#The startup function loads choices into the grid.
+
+function startup;
+	call loadChoices;
+	#reresh the grid
+	show grdOne;
+end;

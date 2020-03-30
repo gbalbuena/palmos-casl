@@ -1,0 +1,78 @@
+#########################################################
+#
+#Tabs
+#
+#From the book - Developing with CASL
+#
+#Copyright 2001 - 2002 Paul Schmid
+#
+#########################################################
+
+#Step 4:  Displaying Tab Button Text
+#The fillButtons function fills the tab buttons with text.
+
+function fillButtons;
+	btnTab[0].display = "Zero";
+	btnTab[1].display = "One";
+	btnTab[2].display = "Two";
+end;
+
+
+#Step 5:  Showing the Buttons
+#Since the tab labels and tab buttons share 
+#the same space, the showButtons function is 
+#required to ensure that the buttons appear on top of the labels.
+
+function showButtons;
+	show btnTab[0];
+	show btnTab[1];
+	show btnTab[2];
+end;
+
+
+#Step 6:  Drawing the Lines
+#The tabLines function controls the visibility 
+#of the lines across the bottom of the tabs.  
+#This creates the illusion that the current tab 
+#is above the others.
+
+function tabLines;
+	if invokersub = 0;
+		lblTabline[0].hidden = true;
+		lblTabline[1].hidden = false;
+		lblTabline[2].hidden = false;
+	else_if invokersub = 1;
+		lblTabline[0].hidden = false;
+		lblTabline[1].hidden = true;
+		lblTabline[2].hidden = false;
+	else_if invokersub = 2;
+		lblTabline[0].hidden = false;
+		lblTabline[1].hidden = false;
+		lblTabline[2].hidden = true;
+	end_if;
+end;
+
+
+#Step 7:  Managing the Tabs
+#The tab buttons invoke the manageTabs function.  
+#When a tab button is tapped, it hides the appropriate 
+#line and displays the tab's index in the display label.
+
+function manageTabs;
+	lblDisplay[0].display = "Tab " + string(invokersub, "#");
+	call tabLines;
+	call showButtons;
+end;
+
+
+#Step 8:  Starting Up
+#The startup function initializes the tabs by 
+#activating the first tab, hiding its tab line, 
+#and displaying the tab index in the display label.
+
+function startup;
+	lblDisplay[0].display = "Tab " + string(invokersub, "#");
+	call showButtons;
+	call fillButtons;
+	call tabLines;
+end;

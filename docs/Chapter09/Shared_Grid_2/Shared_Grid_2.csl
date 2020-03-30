@@ -1,0 +1,471 @@
+#########################################################
+#
+#Shared_Grid_2
+#
+#From the book - Developing with CASL
+#
+#Copyright 2002 Paul Schmid
+#
+#########################################################
+
+
+#Step 4:  Declaring Global Variables
+
+variables;
+	numeric invokedTab;				#Keeps track of which tab was tapped
+	numeric selectedIndex;		#The index of the selected grid element
+	string selectedGroup;			#The name of the selected Group
+	string selectedItem;			#The name of the selected Item
+	string choicesArray[10];	#Stores 10 chosen items
+	string transferArray[10];	#Used to sort the choicesArray
+	numeric groupBmark_Offset;#The grid bookmark offset from 0 to the    
+														#desired GroupDB record
+	numeric itemBmark_Offset;	#The grid bookmark offset from 0 to the 
+														#desired ItemDB record
+end;
+
+
+#Step 5:  Declaring the Databases
+#Declare group and item database objects.
+
+variables;
+	string fld_GroupName;
+	string fld_ItemName;
+end;
+
+dbfile groupDB;
+	field fld_GroupName;
+	sync_pref none;
+end;
+
+dbfile itemDB;
+	field fld_GroupName;
+	field fld_ItemName;
+	sync_pref none;
+end;
+
+
+#Step 6:  Populating the Databases 
+#The populateDatabases function fills the group 
+#and item databases.  Group names will have a 
+#format like ACC_725 and item names will have a 
+#format like ACC_Item_123.
+
+function populateDatabases;
+	variables;
+		string groupPrefix[5] = "ACC_","DES_","DES_","DOD_","GRD_";
+		numeric groupCounter;
+		numeric itemCounter;
+	end;
+
+	#Add 5 groups to the group database
+	for groupCounter = 0, groupCounter < 5;
+		fld_GroupName = groupPrefix[groupCounter] + 
+ 												string(randomn(1000),"#");
+		insert groupDB;
+		#Add 10 items for each group in the item database
+		for itemCounter = 0, itemCounter < 10;
+			fld_ItemName = left(fld_GroupName,4) + "Item_" +
+												string(randomn(1000),"#");
+			insert itemDB;
+		next itemCounter;
+	next groupCounter;
+end;
+
+
+#Step 7:  Updating the Tab Buttons
+#The nameTabButtons function places text on the tab 
+#buttons and the showTabButtons function shows each 
+#of the three tab buttons.  The showing of the tab 
+#buttons is required to make sure they appear on top 
+#of the tab labels that occupy the same screen space.
+
+function nameTabButtons;
+	btnTab[0].display = "Groups";
+	btnTab[1].display = "Items";
+	btnTab[2].display = "Choices";
+end;
+
+function showTabButtons;
+	btnTab[0].hidden = false;
+	btnTab[1].hidden = false;
+	btnTab[2].hidden = false;
+end;
+
+
+#Step 8:  Calculating the Bookmark Offset
+#The gridOffset function searches a database for the 
+#group name or group prefix.  The value of the record 
+#pointer from the first record matching the search is 
+#the offset value.
+
+function gridOffset(string fieldType, string filter) as numeric;
+	#Reset the errorcode
+	errorcode = 0;
+
+	#Search the group database to find the group database offset
+	if fieldType = "Group";
+		search groupDB, filter;
+		errorcode = 0;
+		get_fields groupDB;
+		if left(fld_GroupName,4) = filter and errorcode = 0;
+			gridOffset = bookmark;
+		end_if;
+	#Search the item database to find the item database offset
+	else_if fieldType = "Item";
+		search itemDB, filter + selectedGroup;
+		errorcode = 0;
+		get_fields itemDB;
+		if fld_GroupName = filter + selectedGroup and errorcode = 0;
+			gridOffset = bookmark;
+		end_if;
+	end_if;
+end;
+
+
+#Step 9:  Calculating the Number of Data Rows
+#The gridSize function determines how many records 
+#from the databases or elements from the array will 
+#appear in the grid.  The grid's NUMBER_OF_DATA_ROWS 
+#property is set to this value to limit the grid from 
+#displaying more data.
+
+function gridSize(string fieldType, string filter) as numeric;
+	variables;
+		numeric recordCount = 0;
+		numeric continueLoop = true;
+	end;
+
+	#Search either group or item database based on fieldType parameter
+	if fieldType = "Group";
+		search groupDB, filter;
+	else_if fieldType = "Item";
+		search itemDB, filter + selectedGroup;
+	end_if;
+
+	#Reset errorcode
+	errorcode = 0;
+
+	#Loop through the data sources to find the records that match the #filter the elements in the choicesArray
+	while continueLoop = true;
+		if fieldType = "Group";
+			#Read record
+			get_fields groupDB;
+			#If group name matches group filter then increment record 
+			#count
+			if left(fld_GroupName,4) = filter and errorcode = 0;
+				recordCount = recordCount + 1;
+			else;
+				continueLoop = false;
+			end_if;
+		else_if fieldType = "Item";
+			#Read record
+			get_fields itemDB;
+			#If group name matches group filter then increment record 
+			#count
+			if fld_GroupName = filter + selectedGroup and errorcode = 0;
+				recordCount = recordCount + 1;
+			else;
+				continueLoop = false;
+			end_if;
+		else_if fieldType = "Choice";
+			#Don't check array if record count is greater than 9
+			if recordCount < 10;
+				#If the element has length then increment the record count
+				if length(choicesArray[recordCount]) > 0;
+					recordCount = recordCount + 1;
+				else;
+					continueLoop = false;
+				end_if;
+			else;
+				continueLoop = false;
+			end_if;
+		end_if;
+	end_while;
+	#Set the gridsize
+	gridSize = recordCount;
+end;
+
+
+#Step 10:  Managing the Tab Clicks
+#There are four functions that manage the tab interface.
+
+#1.	showGroupTab updates the form when the Group tab is tapped
+#2.	showItemTab updates the form when the Item tab is tapped
+#3.	showChoicesTab updates the form when the Choices tab is tapped
+#4.	The tab buttons invoke the showTab function that calls one of 
+#   the previous three functions.
+
+function showGroupTab;
+	#Indicate that the first tab has focus
+	invokedTab = 0;
+
+	#hide/show tab lines
+	lblTabLine[0].hidden = true;
+	lblTabLine[1].hidden = false;
+	lblTabLine[2].hidden = false;
+
+	#rewind the grid's bookmark
+	grdOne.bookmark = 0;
+
+	#set grid's bookmark to desired position
+	groupBmark_Offset = gridOffset("Group","DES_");
+
+	#set grid number of data rows
+	grdOne.number_of_data_rows = gridSize("Group","DES_");
+
+	#refresh the grid
+	show grdOne;
+
+	#show the tab buttons
+	call showTabButtons;
+end;
+
+
+function showItemTab;
+	#Indicate that the second tab has focus
+	invokedTab = 1;
+
+	#hide/show tab lines
+	lblTabLine[0].hidden = false;
+	lblTabLine[1].hidden = true;
+	lblTabLine[2].hidden = false;
+
+	#rewind the grid bookmark to zero
+	grdOne.bookmark = 0;
+
+	#set grid's bookmark
+	itemBmark_Offset = gridOffset("Item","DES_");
+
+	#set grid number of data rows
+	grdOne.number_of_data_rows = gridSize("Item","DES_");
+
+	#refresh the grid
+	show grdOne;
+
+	#highlight the first grid row
+	grdOne.selected = 0;
+
+	#show the tab buttons
+	call showTabButtons;
+end;
+
+
+function showChoicesTab;
+	#Indicate that the third tab has focus
+	invokedTab = 2;
+
+	#hide/show tab lines
+	lblTabLine[0].hidden = false;
+	lblTabLine[1].hidden = false;
+	lblTabLine[2].hidden = true;
+
+	#rewind the grid's bookmark
+	grdOne.bookmark = 0;
+
+	#set grid number of data rows
+	grdOne.number_of_data_rows = gridSize("Choice","");
+
+	#refresh the desc grid
+	show grdOne;
+
+	#show the tab buttons
+	call showTabButtons;
+end;
+
+
+function showTab;
+	if invokersub = 0;
+		call showGroupTab;
+	else_if invokersub = 1;
+		call showItemTab;
+	else_if invokersub = 2;
+		call showChoicesTab;
+	end_if;
+end;
+
+
+
+#Step 11:  Loading the Grid
+#The grid's ROW LOADED event invokes the loadGrid function.  
+#This function loads the grid with the appropriate data 
+#based on the current tab.  It updates the grid each time 
+#the grid is scrolled or refreshed.
+
+function loadGrid;
+	variables;
+		numeric stringLength;
+		string newGroupName;
+	end;
+
+	#load grid with group names
+	if invokedTab = 0;
+		#Position the record pointer
+		seek_start groupDB, grdOne.bookmark + 
+  											groupBmark_Offset + 
+  											invokersub;
+		#Reset the errorcode
+		errorcode = 0;
+		#Read the record
+		get_fields groupDB;
+		#Load the group name if found
+		if errorcode = 0 and invokersub < grdOne.number_of_data_rows;
+			stringLength = length(fld_GroupName);
+			newGroupName = right(fld_GroupName, stringLength - 4);
+			grdOne[0,invokersub].display = newGroupName;
+		else;
+			grdOne[0,invokersub].display = "";
+		end_if;
+	#load grid with item names
+	else_if invokedTab = 1;
+		#Position the record pointer
+		seek_start itemDB, grdOne.bookmark + 
+ 											 itemBmark_Offset + 
+ 											 invokersub;
+		#Reset errorcode
+		errorcode = 0;
+		#Read the record
+		get_fields itemDB;
+		#Load an item name if found
+		if errorcode = 0 and invokersub < grdOne.number_of_data_rows;
+			grdOne[0,invokersub].display = fld_ItemName;
+		else;
+			grdOne[0,invokersub].display = "";
+		end_if;
+	#load grid with selected items from array
+	else_if invokedTab = 2;
+		grdOne[0,invokersub].display = 
+														choicesArray[grdOne.bookmark + invokersub];
+	end_if;
+end;
+
+
+#Step 12:  Selecting a Grid Element
+#The grid's SELECTED ROW event invokes the selectElement 
+#function.  The selectElement function has the following 
+#behaviors based on the current tab.
+
+#1.	When a Group row is selected the Item tab is shown with the group's items.
+#2.	When an Item tab is selected the Choices tab is shown with the selected items.
+#3.	When a Choices row is selected the choice is removed from the choices array. 
+
+function selectElement;
+	variables;
+		numeric continueLoop = true;
+		numeric loopCounter;
+		numeric index;
+	end;
+
+	#The group tab - show the items that belong to the selected group
+	if invokedTab = 0;
+	
+		#get the index of the selected row
+		selectedIndex = grdOne.selected - grdOne.bookmark;
+		#get the name of the selected group
+		selectedGroup = lblOne[selectedIndex].display;
+
+		#show the item tab
+		call showItemTab;
+
+	#The item tab - move selection into choices array
+	else_if invokedTab = 1;
+
+		#get the index of the selected row
+		selectedIndex = grdOne.selected - grdOne.bookmark;
+		#get the name of the selected item
+		selectedItem = lblOne[selectedIndex].display;
+
+		#add the selected item name to the choices array
+		index = 0;
+		while continueLoop = true and index < 10;
+			if length(choicesArray[index]) = 0;
+				choicesArray[index] = selectedItem;
+				continueLoop = false;
+			end_if;
+			index = index + 1;
+		end_while;
+
+		#make all the remaining elements blank
+		for loopCounter = index, loopCounter < 10;
+			choicesArray[loopCounter] = "";
+		next loopCounter;
+
+		#show the selected item / choices tab
+		call showChoicesTab;
+
+	#Choices tab - Delete the selection from choices array
+	else_if invokedTab = 2;
+
+		#Get the selected row index
+		selectedIndex = grdOne.selected - grdOne.bookmark;
+
+		#clear the element from the array
+		choicesArray[selectedIndex] = "";
+
+		#transfer remaining elements to transfer array
+		index = 0;
+		for loopCounter = 0, loopCounter < 10;
+			if length(choicesArray[loopCounter]) > 0;
+				transferArray[index] = choicesArray[loopCounter];
+				index = index + 1;
+			end_if;
+			#clear the choices array elements
+			choicesArray[loopCounter] = "";
+		next loopCounter;
+
+		#put the transfer array elements back in the choices array
+		for loopCounter = 0, loopCounter < 10;
+			if length(transferArray[loopCounter]) > 0;
+				choicesArray[loopCounter] = transferArray[loopCounter];
+			else;
+				choicesArray[loopCounter] = "";
+			end_if;
+		next loopCounter;			
+
+		#Clear the transfer array
+		for loopCounter = 0, loopCounter < 10;
+			transferArray[loopCounter] = "";
+		next loopCounter;
+
+	end_if;
+
+	#refresh the grid
+	show grdOne;
+end;
+
+
+#Step 13:  Starting Up and Shutting Down
+#The startup function opens the databases, populates 
+#them if necessary, and starts on the Group tab, 
+#filling the grid with available groups.
+
+#The shutdown function closes the databases.
+
+function startup;
+	#open the Group database
+	open groupDB, "GroupDB";
+	
+	#open the Item database
+	open itemDB, "ItemDB";
+	
+	#populate the databases if necessary
+	if groupDB.number_of_records = 0 or 
+	   itemDB.number_of_records = 0;
+	call populateDatabases;
+	end_if;
+	
+	#Place names on the tab buttons
+	call nameTabButtons;
+	
+	#show the form;
+	show frmGrid;
+
+	#activate the first tab
+	call showGroupTab;
+end;
+
+
+function shutdown;
+close groupDB;
+close itemDB;
+end;

@@ -1,0 +1,74 @@
+#########################################################
+#
+#Invoker
+#
+#From the book - Developing with CASL
+#
+#Copyright 2001 - 2002 Paul Schmid
+#
+#########################################################
+
+#Step 3:  Declaring Global Variables
+#This variable declaration section declares the database object fields
+#and the string array bound to the selector object.
+
+variables;
+	numeric fldOne;
+	numeric fldTwo;
+	string selArray[2] = "One","Two";
+end;
+
+
+#Step 4:  Declaring a Database
+#Declare a two field database object.
+
+dbfile database;
+	field fldOne;
+	field fldTwo;
+sync_pref none;
+end;
+
+
+#Step 5:  Creating a Menu
+#Declare top-level and item-level menus.
+
+#top-level menu
+menu_top tmnu_File;
+	display "File";
+end;
+
+#Item-level menu
+menu_item imnu_SaveAs, tmnu_File;
+	display "Save As...";
+	invokes invokedFunction;
+end;
+
+
+#Step 6:  The Invoked Function
+#Each object invokes this function.  The label at the
+#bottom of the form will display the invoking object's 
+#type using the object_type property.  
+#The INVOKER keyword is used in place of the object names.  
+#Without invoker you would have to test each object using an IF-THEN structure.
+
+function invokedFunction;
+	lblResult.display = invoker.object_type;
+end;
+
+
+#Step 7:  Starting Up and Shutting Down
+#The startup function creates a database to 
+#be displayed in the file selector and refreshes the 
+#file selector.  The shutdown function closes and 
+#deletes the database.
+
+function startup;
+	open database, "dbTest";
+	show fselObj;
+	selObj.object_string = "Hi";
+end;
+
+function shutdown;
+	close database;
+	delete "dbTest";
+end;

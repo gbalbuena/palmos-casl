@@ -1,0 +1,174 @@
+#########################################################
+#
+#HealthTrak
+#
+#_Options.cpk
+#
+#From the book - Developing with CASL
+#
+#Copyright 2001 - 2002 Paul Schmid
+#
+#########################################################
+
+#Step 2:  Declaring a File
+#Declare a file object called options.
+
+file options;
+end;
+
+
+#Step 3:  Opening a File
+#The openOptionsFile opens a file named HealthOptions.txt 
+#based on the options file object.  This file will store 
+#the unit type and draw line preferences.
+
+function openOptionsFile;
+	variables;
+		numeric response;
+	end;
+	#reset the errorcode
+	errorcode = 0;
+	open options, "HealthOptions.txt";
+	if errorcode <> 0;
+		response = message_box(0,"HealthTrak",
+														 "Open options file error.",
+														 "","OK","");
+	end_if;
+end;
+
+
+#Step 4:  Closing a File
+#The closeOptionsFile function closes the 
+#file associated with the options file object.
+
+function closeOptionsFile;
+	variables;
+		numeric response;
+	end;
+
+	#reset errorcode
+	errorcode = 0;
+	close options;
+	if errorcode <> 0;
+		response = message_box(0,"HealthTrak",
+														 "Close options file error.",
+														 "","OK","");
+	end_if;
+end;
+
+
+#Step 5:  Reading User Preferences
+#he getOptions function is invoked by the startup 
+#function.  It reads the first and second records of the 
+#HealthOptions.txt file and writes their values to the 
+#g_UnitType and g_DrawLines global variables.  If the 
+#values it reads are not valid, default values are placed 
+#in the global variables.
+
+function getOptions;
+	seek_start options, 0;
+	get options, g_UnitType;
+
+	if g_UnitType <> "Eng" and g_UnitType <> "Met";
+		g_UnitType = "Eng";
+	end_if;
+
+	seek_start options, 1;
+	get options, g_DrawLines;
+
+	if g_DrawLines <> "Y" and g_DrawLines <> "N";
+		g_DrawLines = "Y";
+	end_if;
+end;
+
+
+#Step 6:  Writing User Preferences
+#This function is invoked by the shutdown function.  
+#It writes the values of the g_UnitType and g_DrawLines 
+#global variables to the HealthOptions.txt file.
+
+ 
+function setOptions;
+	seek_start options, 0;
+	put options, g_UnitType;
+	put options, g_DrawLines;
+end;
+
+
+#Step 7:  Choosing to Draw Lines
+#The changeLineState function is invoked from the 
+#Lines menu option.  It changes the current value of the 
+#g_DrawLines global variable from Y to N or vice versa.  
+#Y indicates lines will be drawn and N indicates lines 
+#will not be drawn on the line chart.
+
+function changeLineState;
+	variables;
+		numeric response;
+	end;
+	
+		response = message_box(0,"HealthTrak",
+								 							"Draw Chart Lines: " + 
+														 g_DrawLines + 
+														 char(10) +
+							       				"Change State?",
+				                   	"Yes","","No");
+	
+		if response = 0;
+			if g_DrawLines = "Y";
+				g_DrawLines = "N";
+			else_if g_DrawLines = "N";
+				g_DrawLines = "Y";
+			end_if;
+		end_if;
+end;
+
+
+#Step 8:  Changing Unit Type
+#The changeUnitType function is invoked from the Units 
+#menu option.  It changes the current value of the 
+#g_UnitType global variable from Eng to Met or vice versa.  
+#Eng indicates English units will be used and Met indicates 
+#Metric units.
+
+function changeUnitType;
+	variables;
+		numeric response;
+	end;
+
+		response = message_box(0,"HealthTrak",
+								 							"Current Units: " + 
+														 	g_UnitType + 
+														 	char(10) +
+							       					"Change Units?",
+				                   		"No","English","Metric");
+	
+		if response = 2;
+			g_UnitType = "Met";
+		else_if response = 1;
+			g_UnitType = "Eng";
+		end_if;
+
+	#if the data or user form is shown
+	#update the labels on the user and data forms
+	call updateDataLabels;
+	call updateUserLabels;
+end;
+
+
+#Step 9:  Displaying Current User
+#The showCurrentUser function is invoked from the 
+#User menu option.  It displays a message box with 
+#the name of the current user.
+
+function showCurrentUser;
+	variables;
+		numeric response;
+	end;
+
+	response = message_box(0,"HealthTrak",
+							 						 "Current User:" + 
+													 char(10) + 
+													 g_activeUserName,		     
+													 "","OK","");
+end;

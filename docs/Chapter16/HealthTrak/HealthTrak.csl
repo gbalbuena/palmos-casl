@@ -1,0 +1,46 @@
+#########################################################
+#
+#HealthTrak
+#
+#From the book - Developing with CASL
+#
+#Copyright 2001 - 2002 Paul Schmid
+#
+#########################################################
+
+include "_GlobalVars.cpk";
+include "_DeclareDB.cpk";
+include "_UniversalDB.cpk";
+include "Form_Login.cpk";
+include "_Format.cpk";
+include "DB_User.cpk";
+include "Form_User.cpk";
+include "DB_Data.cpk";
+include "Form_Data.cpk";
+include "DB_Search.cpk";
+include "Form_ChooseData.cpk";
+include "DB_Chart.cpk";
+include "Form_Graph.cpk";
+include "_Options.cpk";
+
+
+function startup;
+	call openDB(userDB, "HealthUserDB");
+	call openDB(searchDB, "HealthSearchDB");
+	call openDB(chartDB, "HealthChartDB");
+	call openOptionsFile;
+	call getOptions;
+	call clearUserSelector;
+	call fillUserSelector;
+	call refreshUserSelector;
+end;
+
+
+function shutdown;
+	call closeDB(userDB);
+	call closeDB(searchDB);
+	call closeDB(chartDB);
+	call setOptions;
+	call closeOptionsFile;
+end;
+

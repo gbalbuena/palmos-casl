@@ -1,0 +1,169 @@
+#########################################################
+#
+#HealthTrak
+#
+#Form_User.cpk
+#
+#From the book - Developing with CASL
+#
+#Copyright 2001 - 2002 Paul Schmid
+#
+#########################################################
+
+#Step 7:  Managing Checkboxes
+#The user form has two checkboxes that allow input of the user's 
+#gender - male or female.  Three functions are required 
+#to manage these checkboxes.
+
+#The initSexCheckboxes function gives the checkboxes their 
+#initial value when the User form is opened in New mode.
+
+#The labelSexCheckBoxes function labels the checkboxes Male and 
+#Female each time the User form is opened.
+
+#The manageRadioBehavior function is invoked by the checkboxes 
+#requiring that only one checkbox be checked at any given time.
+
+function initSexCheckboxes;
+	chkSex[0].checkbox = true;
+	chkSex[1].checkbox = false;
+end;
+
+
+function labelSexCheckBoxes;
+	chkSex[0].display = "Male";
+	chkSex[1].display = "Female";
+end;
+
+
+function manageRadioBehavior;
+	variables;
+		numeric activeIndex;
+	end;
+
+	#which checkbox in the array was tapped?
+	activeIndex = invokersub;
+
+	if activeIndex = 0;
+		chkSex[0].checkbox = true;
+		chkSex[1].checkbox = false;
+	else_if activeIndex = 1;
+		chkSex[1].checkbox = true;
+		chkSex[0].checkbox = false;
+	end_if;
+end;
+
+
+#Step 8:  Updating Form Fields
+#The updateUserLabels function is invoked when the User 
+#form is opened and when the Units have been changed from 
+#the menu.  It makes sure the labels are displaying the 
+#user specified units.
+
+#The clearUserFields function is invoked when 
+#the User form is opened in New mode and after a 
+#new user profile has been entered.   It clears the 
+#text fields so the form is ready for more input.
+
+function updateUserLabels;
+	lblUnits_U[0].display = "lbs";
+	lblUnits_U[1].display = "in";
+
+	#metric
+	if g_UnitType = "Met";
+		lblUnits_U[0].display = "kg";
+		lblUnits_U[1].display = "cm";
+	end_if;
+end;
+
+
+function clearUserFields;
+	txtName.display = "";
+	txtWeight_U.display = "";
+	txtHeight.display = "";
+	txtAge.display = "";
+end;
+
+
+#Step 9:  Validating the User Name
+#Before a user profile can be inserted into the 
+#userDB database, the name must be validated.  
+#This is important because the name field is the key 
+#field of the userDB database.  The name must contain 
+#data but not multiple space characters (ASCII 32).  
+#The isUserNameValid function returns true if the name is validated.
+
+function isUserNameValid as numeric;
+	#assume it is not valid
+	isUserNameValid = false;
+
+	#The name must contain data
+	#and the last character cannot be a space
+	if length(txtName.display) > 0 and right(txtName.display,1) <> char(32);
+		isUserNameValid = true;
+	end_if;
+
+	#The name must not already exist
+	if foundRecord(userDB,txtName.display) = 0;
+		isUserNameValid = false;
+	end_if;
+end;
+
+
+#Step 10:  Showing the User Form
+#The showUserForm function opens the user form in one 
+#of two modes - New or Edit.  In New mode the form is 
+#initialized, cleared, and ready for new user input.  
+#In Edit mode, the form fields are filled with the record 
+#information of the user being edited.
+
+function showUserForm;
+	variables;
+		object buttonName;
+	end;
+
+	buttonName = invoker;
+
+	if buttonName = btnCreate_L;
+		hide frmLogin;
+		show frmUser;
+		frmUser.display = "New User";
+		call updateUserLabels;
+		call clearUserFields;
+		call labelSexCheckBoxes;
+		call initSexCheckboxes;
+		#set focus on name field
+		txtName.focused = true;
+	else_if buttonName = btnEdit_L;
+		#does user exist?
+		if foundRecord(userDB, selUsers.display) = 0;
+			hide frmLogin;
+			show frmUser;	
+			call getUserFields;
+			g_ActiveUserName = selUsers.display;
+			frmUser.display = "Edit User";
+			#lock name field
+			txtName.no_input = true;
+			call updateUserLabels;
+			call labelSexCheckBoxes;
+			#set focus on age field
+			txtAge.focused = true;
+		end_if;
+	end_if;
+end;
+
+
+#Step 11:  Hiding the User Form
+#Invoked by the Cancel button, this function 
+#hides the user form.
+
+function hideUserForm;
+	#unlock name field
+	txtName.no_input = false;
+	hide frmUser;
+	show frmLogin;
+	#refresh the user list
+	call clearUserSelector;
+	call fillUserSelector;
+	call refreshUserSelector;
+end;

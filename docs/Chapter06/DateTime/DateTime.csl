@@ -1,0 +1,124 @@
+#########################################################
+#
+#DateTime
+#
+#From the book - Developing with CASL
+#
+#Copyright 2001 - 2002 Paul Schmid
+#
+#########################################################
+
+#Step 3:  Referencing External Functions
+#Use the EXTERNAL and END_EXTERNAL statements 
+#to reference the CASL_Palm_Utils functions.
+ 
+#CASL_SelectDay
+#The CASL_SelectDay title argument is the title 
+#for the date dialog.  The day_String argument 
+#is the start date in YYYYMMDD format.
+
+#When the user taps OK, the return string is in 
+#the format YYYYMMDD.  When the user taps Cancel, 
+#the return string is an empty string.
+
+#CASL_SelectTime
+#The CASL_SelectTime times[] argument contains the 
+#start and end times.  It must be preloaded with 
+#values in an HHMM format.  The title argument 
+#is the title for the time dialog.  
+#The start_of_day argument is an integer numeric 
+#representing the first time shown in the selector.  
+
+#When the user taps OK, the return value is 1.  
+#The new time values are in the time[] array.  
+#When the user taps Cancel, the return numeric is 0.  
+#The time[] array remains unchanged.
+
+external "CASL_Palm_Utils";
+
+function CASL_SelectDay(string title, 
+												string day_string) 
+												as string;             
+
+function CASL_SelectTime(string  times[],							
+												 string  title,	
+												 numeric start_of_day) 
+												 as numeric;            
+
+end_external;
+
+
+#Step 4:  Fixing a Time Bug
+#There is bug in Palm API time dialog for return 
+#times between 12 midnight (0000) and 12:09a (0009).  
+#When return time is 00mm, the actual return value will be 0mm.  
+#When return time is 000m, the actual return value will be 0m.  
+#Use the CASL_FixTimeBug funcion to get the correct four-digit return time.
+
+#Given time in hhmm, 0mm, or 0m formats, 
+#the CASL_FixTimeBug function will perform the following transformations.
+
+#	hhmm > hhmm
+#	0mm > 00mm
+#	0m > 000m
+
+function CASL_FixTimeBug(string time) as string;
+	if length(time)= 4;
+		CASL_FixTimeBug = time;
+	else;
+		if length(time)=3;
+			CASL_FixTimeBug = "0" + time;
+		else;
+			CASL_FixTimeBug = "0" + left(time,1) + "0" + right(time,1);
+		end_if;
+	end_if;
+end;
+
+
+#Step 5:  Setting the Time
+#The setTime function is invoked by the Set Time button.  
+#It opens the time dialog with the title "Time" 
+#and with a start time of 8:15 AM and an end time of 1:00 PM.
+
+function setTime;
+	variables;
+		numeric response;
+		string times[2] = "0815","1300";
+	end;
+
+	#Open the time dialog
+	response =  CASL_SelectTime(times,"Time",6);
+
+	#If OK button is pressed, display the selected time
+	if response = 1;
+		lblTime[0].display = CASL_FixTimeBug(times[0]);
+		lblTime[1].display = CASL_FixTimeBug(times[1]);
+	end_if;
+end;
+
+
+#Step 6:  Setting the Date
+#The Set Date button invokes the setDate function.  
+#It opens the date dialog with the current date.
+
+function setDate;
+	variables;
+		string response;
+		string dayString; #in YYYYMMDD format
+	end;
+
+	#Build current date in the YYYYMMDD format
+	dayString = string(year(),"####") + 
+	string(month(),"0#") + 
+	string(day(),"0#");
+
+	#Open the date dialog
+	response =  CASL_SelectDay("Date",dayString);
+
+	#OK button was pressed if response is not an empty #string
+	if length(response) > 0;
+		lblDate[2].display = left(response,4); 	#YEAR
+		lblDate[1].display = right(response,2); #DAY
+		lblDate[0].display = mid(response,4,2);	#MONTH
+	end_if;
+end;

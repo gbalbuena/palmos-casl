@@ -1,0 +1,126 @@
+#########################################################
+#
+#HealthTrak
+#
+#DB_Data.cpk
+#
+#From the book - Developing with CASL
+#
+#Copyright 2001 - 2002 Paul Schmid
+#
+#########################################################
+
+function clearDataFields;
+end;
+
+
+#Step 3:  Timestamping
+#The uniqueDateID function creates a unique timestamp.  
+#The value returned from this function is placed in the 
+#dateID key field of the DataDB database to ensure there 
+#will be no duplicate records.
+
+#The function returns a date in the format YYYYMMDDHHMMSS.  
+#For example, 010312221545 is March 12, 2001 at 10:15.45 PM.
+
+ 
+function uniqueDateID(numeric nYear, 
+											numeric nMonth, 
+											numeric nDay,   
+											numeric nHour, 
+											numeric nMinute, 
+											numeric nSecond) as string;
+
+	uniqueDateID = string(nYear,"####") + 
+									string(nMonth,"0#") + 
+									string(nDay,"0#") +
+									string(nHour,"0#") + 
+									string(nMinute,"0#") + 
+									string(nSecond,"0#");
+
+end;
+
+
+#Step 4:  Filling DataDB Fields
+#The putDataFields function places the value of the 
+#text objects into the DataDB field variables.  
+#When the Data form is in New mode the dateID field 
+#is given a new value.  When the Data form is in Edit 
+#mode the dateID is not given a new value.  This allows 
+#the edited record to maintain its original timestamp.
+
+function putDataFields;
+	if frmData.display = "New Data";
+		dateID = uniqueDateID(year,month,day,hour,minute,second);
+	end_if;
+
+	if frmData.display = "New Data" or frmData.display = "Edit Data";
+		unitType = g_UnitType;
+		systolic = value(txtSystolic.display);
+		diastolic = value(txtDiastolic.display);
+		pulse = value(txtPulse.display);
+		weight = value(txtWeight_D.display);
+		temp = value(txtTemp.display);
+	end_if;
+end;
+
+
+#Step 5:  Displaying DataDB Fields
+#The getDataFields function places DataDB field values 
+#into the text objects on the Data form.  For weight and 
+#temperature data, this function compares the current unit 
+#type (g_UnitType) against the record's UnitType.  If they do 
+#not agree, the data is converted to the current unit type.
+
+function getDataFields;
+	txtSystolic.display = string(systolic,"#");
+	txtDiastolic.display = string(diastolic,"#");
+	txtPulse.display = string(pulse,"#");
+	txtWeight_D.display = string(weight,"#");
+	txtTemp.display = string(temp,"#");
+	if unitType = "Eng" and g_UnitType = "Met";
+		txtWeight_D.display = string(lb_to_kg(weight),"#");
+		txtTemp.display = string(F_to_C(temp),"#");
+	else_if unitType = "Met" and g_UnitType = "Eng";
+		txtWeight_D.display = string(kg_to_lb(weight),"#");
+		txtTemp.display = string(C_to_F(temp),"#");
+	end_if;
+end;
+
+
+#Step 6:  Modifying the DataDB Database
+#The OK button invokes the modifyDataDB function.  
+#This function determines the Data form's mode (New or Edit) 
+#and modifies the DataDB database accordingly.  If the Data 
+#form is in New mode, a new data record is inserted.  If the form 
+#is in Edit mode, the record is updated rather than being inserted 
+#a second time and the identical record in the searchDB database 
+#is also updated.
+
+function modifyDataDB;
+	variables;
+		numeric response;
+	end;
+
+	if frmData.display = "New Data";
+		response = message_box(0,"HealthTrak",
+														"Add this record?",
+														"YES","","NO");
+		if response = 0;
+			call putDataFields;
+			call insertRecord(dataDB);
+			call clearDataFields;
+		end_if;
+	else_if frmData.display = "Edit Data";
+		response = message_box(0,"HealthTrak",
+														"Update this record?",
+														"YES","","NO");
+		if response = 0;
+			call putDataFields;
+			call updateRecord(dataDB, dateID);
+			call updateRecord(searchDB, dateID);
+			hide frmData;
+			show frmChooseData;
+		end_if;
+	end_if;
+end;

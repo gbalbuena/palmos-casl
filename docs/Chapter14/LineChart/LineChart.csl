@@ -1,0 +1,239 @@
+#########################################################
+#
+#LineChart
+#
+#From the book - Developing with CASL
+#
+#Copyright 2001 - 2002 Paul Schmid
+#
+#########################################################
+
+#Step 4:  Adding Global Variables
+
+variables; 
+	#the space between the Y axis divisions
+	numeric m_Y_graduation;
+	#the numerical value of one pixel's height
+	numeric m_Y_pixelVal;
+end;
+
+
+#Step 5:  Adding Constants
+
+variables;
+	#number of divisions of the Y axis
+	numeric Y_AXIS_DIVISIONS = 10;
+	#pixel width of a marker in the line chart
+	numeric LINE_MARKER_WIDTH = 3;
+	#the number of markers available in the line chart
+	numeric MAX_LINE_MARKERS = 30;
+	#the lowest Y position of a chart marker
+	numeric MIN_MARKER_POS = 129;
+	#the highest Y position of a chart marker
+	numeric MAX_MARKER_POS = 29;
+end;
+
+
+#Step 6:  Aligning Markers
+#In Figure 14-19, the 30 elements of the button 
+#array are not aligned along the X-axis.  The 
+#alignMarkers function properly aligns them.  
+#You can eliminate this function by taking the time 
+#to align the buttons while designing the form.
+
+function alignMarkers;
+	variables;
+		numeric loopCounter;
+		numeric nStartPixel = 31;
+	end;
+
+	#adjust the X position of each marker
+	for loopCounter = 0, loopCounter < MAX_LINE_MARKERS;
+		btnMarker[loopCounter].x_position = nStartPixel + 
+		loopCounter * LINE_MARKER_WIDTH;
+	next loopCounter;
+end;
+
+
+#Step 7:  Hiding and Showing Markers
+#The hideMarkers function hides each of the thirty buttons.  
+#The showMarker function shows a specific button within 
+#the array based on the index parameter.  Each time the 
+#chart is redrawn the markers must be refreshed by hiding 
+#and then showing them with these funcitons.
+
+function hideMarkers;
+	variables;
+		numeric loopCounter;
+	end;
+
+	for loopCounter = 0, loopCounter < MAX_LINE_MARKERS;
+		btnMarker[loopCounter].hidden = true;
+	next loopCounter;
+end;
+
+function showMarker(numeric index);
+	btnMarker[index].hidden = false;
+end;
+
+
+#Step 8:  Moving Markers
+#The moveMarker function moves the markers designated 
+#by the index parameter up the Y axis.  The distance it 
+#moves is determined by the dataPoint parameter.  Remember 
+#that Y coordinates get smaller when moving up the Y axis.
+
+function moveMarker(numeric dataPoint, numeric index);
+	variables;
+		numeric nMarkerPos;
+	end;
+	#determine the new Y position
+	nMarkerPos = MIN_MARKER_POS - dataPoint/m_Y_pixelVal;
+
+	if nMarkerPos < MAX_MARKER_POS;
+		#if it is less than the max position
+		#set it to the max position
+		btnMarker[index].y_position = MAX_MARKER_POS;
+	else_if nMarkerPos > MIN_MARKER_POS;
+		#if it is more than the min position
+		#set it to the min position
+		btnMarker[index].y_position = MIN_MARKER_POS;
+	else;
+		#set it to the new Y position
+		btnMarker[index].y_position = nMarkerPos;
+	end_if;
+end;
+
+
+#Step 9:  Writing Y Axis Values
+#The fill_Y_AxisLabels function fills the labels 
+#to the left of the Y axis.  with the Y axis division values.
+
+function fill_Y_AxisLabels;
+	variables;
+		numeric loopCounter;
+	end;
+
+	for loopCounter = 0, loopCounter < Y_AXIS_DIVISIONS;
+		lblYVal[loopCounter].display = string(m_Y_graduation
+												*(loopCounter + 1),
+												"#.##");
+	next loopCounter;
+end;
+
+ 
+#Step 10:  Drawing Lines
+#The drawLines function draws lines between each data marker.
+
+function drawLines(numeric firstPoint, 
+ 										numeric secondPoint, 
+ 										numeric index);
+	variables;
+		numeric X_Origin = 32;  #X position of the markers
+		numeric X_Offset;			#X offset between adjacent markers 
+		numeric Y_Origin;			#Y position of the markers
+		numeric Y_Offset;			#Y offset between adjacent markers
+	end;
+		
+	#set the line origin
+	if (index - 1) = 0;
+		Y_Origin = MIN_MARKER_POS - firstPoint/m_Y_pixelVal;
+		set frmLineChart,pen,X_Origin,Y_Origin;
+	end_if;
+
+	X_Offset = LINE_MARKER_WIDTH;
+	Y_Offset = (MIN_MARKER_POS - secondPoint/m_Y_pixelVal) - 
+ 											 (MIN_MARKER_POS - firstPoint/m_Y_pixelVal);
+	
+	#draw line from origin to offset
+	draw frmLineChart,line,X_Offset,Y_Offset;
+
+	#set new origin to next data point
+	set frmLineChart,pen,(X_Origin + index * X_Offset),
+												(MIN_MARKER_POS - secondPoint/m_Y_pixelVal);
+end;
+
+
+#Step 11:  Rendering the Chart
+#The renderLineChart function is responsible for 
+#actually drawing the chart.  It fills an array with 
+#30 random numbers from 0 to 50.  It then calls the 
+#moveMarker and drawLines functions to create the chart.
+
+function renderLineChart;
+	variables;
+		numeric loopCounter;			
+		numeric dataArray[30];		#local array to hold 30 random numbers
+		numeric maxDataPoint = 0;  #the maximum of the dataArray[]
+	end;
+
+	#fill the local dataArray
+	for loopCounter = 0, loopCounter < MAX_LINE_MARKERS;
+		dataArray[loopCounter] = randomn(50);
+		#find the maximum data point
+		if dataArray[loopCounter] > maxDataPoint;
+			maxDataPoint = dataArray[loopCounter];
+		end_if;
+	next loopCounter;
+ 
+	#calculate the Y scale's graduation
+	m_Y_graduation = maxDataPoint/ Y_AXIS_DIVISIONS;
+
+	#calculate the Y pixel value where the marker should
+	#be moved
+	m_Y_pixelVal = m_Y_graduation/ Y_AXIS_DIVISIONS;
+
+	#reposition the first marker since this is not done
+	#in the loop below
+	call moveMarker(dataArray[0], 0);
+	call showMarker(0);
+
+	#move the remaining markers and draw lines between them
+	for loopCounter = 1, loopCounter < 30;
+		call moveMarker(dataArray[loopCounter],loopCounter);
+		call showMarker(loopCounter);
+		call drawLines(dataArray[loopCounter - 1],dataArray[loopCounter],loopCounter);
+	next loopCounter;
+end;
+
+
+#Step 12:  Refreshing the Frame
+#The frame must be refreshed each time the chart 
+#is redrawn to properly repaint the line graphics.
+
+function refreshFrame;
+	hide frmLineChart;
+	show frmLineChart;
+end;
+
+
+#Step 13:  Drawing More Data
+#The More Data button invokes the moreData function.  
+#This function clears out the previous chart and draws 
+#a new one with 30 new random data points.
+
+function moreData;
+	hide btnLine_X_Axis;
+	call hideMarkers;
+	clear frmLineChart,line,0,0;
+	call refreshFrame;
+	call renderLineChart;
+	call fill_Y_AxisLabels;
+	show btnLine_X_Axis;
+end;
+
+
+#Step 14:  Starting Up
+#The startup function draws the chart when the program starts.
+
+function startup;
+	#align markers along the X axis
+	call alignMarkers;
+	#draw the chart
+	call renderLineChart;
+	#fill the Y axis labels
+	call fill_Y_AxisLabels;
+	#show the X axis
+	show btnLine_X_Axis;
+end;
+

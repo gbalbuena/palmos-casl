@@ -1,0 +1,153 @@
+#########################################################
+#
+#DuckHunt
+#
+#From the book - Developing with CASL
+#
+#Copyright 2001 - 2002 Paul Schmid
+#
+#########################################################
+
+#Step 4:  Creating Global Variables
+
+variables;
+	#number of movements duck has made
+	numeric loopCount_Duck;
+	#number of movements bullet has made
+	numeric loopCount_Bullet;
+	#true if bullet is moving else false
+	numeric moveBullet;
+	#true if duck is moving else false
+	numeric moveDuck;
+end;
+
+
+#Step 5:  Moving the Duck
+#The moveDuck function uses the loopCount_Duck global 
+#variable to determine how much to adjust the duck's X position.  
+#When the duck has reached the end of the screen, 
+#it starts again from the left side.  The moveDuck 
+#function repeats itself to continually move the duck across the screen.
+
+function moveDuck;
+	variables;
+		numeric xStart = 3;		#starting X pos. of duck label
+		numeric yStart = 19;		#starting Y pos. of duck label
+		numeric X_increment = 3;#number of pixels duck moves at once
+	end;
+
+	if moveDuck = true;
+		#Move the duck X_increment*loopCount_Duck pixels to the right
+		move lblDuck, xStart + (X_increment*loopCount_Duck), yStart;
+	
+		loopCount_Duck = loopCount_Duck + 1;
+	
+		#When loopCount is greater than 52 the duck is off the screen
+		#restart the duck from the right
+		if loopCount_Duck > 52;
+			loopcount_Duck = 0;
+		end_if;
+	
+		#Repeat this function every 100 milliseconds
+		timer moveDuck, 100;
+	end_if;
+end;
+
+
+#Step 6:  Starting DuckHunt
+#The GO button invokes the start function to begin moving the duck.
+
+function start;
+	moveDuck = true;			#duck is moving
+	lblDuck.bitmap = duck;  #label shows living duck
+	show lblDuck;				#refresh duck label
+	loopCount_Duck = 0;		#duck starts at left
+	timer moveDuck, 100;		#move duck in 100 milliseconds
+end;
+
+
+#Step 7:  Moving the Bullet
+#The moveBullet function moves the bullet toward 
+#the duck and checks for a collision.  It uses the 
+#loopCount_Bullet global variable to determine how 
+#much to adjust the bullet's Y position.  If the bullet 
+#reaches the top of the screen it is reset to its original position.  
+
+#The global loopCount variables are compared to 
+#determine if a collision has occurred.  If there is a 
+#collision, the duck's bitmap is changed to the dead_duck 
+#bitmap, the score is incremented, and a new duck will appear 
+#at the left.  This function will repeat until the user exits the program.
+
+function moveBullet;
+	variables;
+		numeric xStart = 72;			#starting X pos. of bullet label
+		numeric yStart = 128;		#starting Y pos. of bullet label
+		numeric Y_increment = 6;	#number of pixels bullet moves at once
+	end;
+
+	if moveBullet = true;
+	#bullet moves up Y axis by Y_increment*loopCount_Bullet pixels
+		move lblBullet, xStart, yStart - (Y_increment*loopCount_Bullet);
+	
+		loopCount_Bullet = loopCount_Bullet + 1;
+	
+		#bullet is off screen if loopCount is greater than 32
+		#move it back to its starting point
+		if loopCount_Bullet > 32;
+			#move bullet to start point
+			move lblBullet, xStart, yStart;
+			#refresh bullet's label
+			show lblBullet;
+			moveBullet = false;
+		end_if;
+
+		#check for collision with duck
+		if loopCount_Bullet >= 18 and 
+			loopCount_Duck > 20 and 
+			loopCount_Duck < 25;
+
+			#mark duck as dead
+			lblDuck.bitmap = dead_duck;
+			show lblDuck;
+			#reset bullet
+			move lblBullet, xStart, yStart;
+			show lblBullet;
+			moveDuck = false;
+			moveBullet = false;
+			#increment score by 5 points
+			lblScore.display = string(value(lblScore.display) + 5,"#");
+			#restart after one second
+			timer start, 1000;
+		end_if;
+	
+		#repeat this function in 100 milliseconds
+		timer moveBullet, 100;
+	end_if;
+end;
+
+
+#Step 8:  Firing the Tank
+#The tank button invokes the shoot function.  
+#The shoot function only works when the duck is 
+#moving and the bullet is not moving.  In other words, 
+#you must wait for the bullet to miss the duck before you can fire again.
+
+function shoot;
+	if moveDuck = true and moveBullet = false;
+		#initialize global variables;
+		moveBullet = true;
+		loopCount_Bullet = 0;
+		#move bullet in 100 milliseconds
+		timer moveBullet, 100;
+	end_if;
+end;
+
+
+#Step 9:  Starting Up
+#The startup function resets the score 
+#to zero when the program starts.
+
+function startup;
+	lblScore.display = "0";
+end;

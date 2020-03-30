@@ -1,0 +1,225 @@
+#########################################################
+#
+#Dynamic_Listbox
+#
+#From the book - Developing with CASL
+#
+#Copyright 2002 Paul Schmid
+#
+#########################################################
+
+
+#Step 3:  Declaring the Databases
+#Declare the database objects for the 
+#Choices and Selections databases.
+
+variables;
+	string fldChoice;
+	string fldChoiceName;
+	numeric fldSelection;
+end;
+
+
+dbfile choicesDB;
+	field fldChoice;
+	sync_pref none;
+end;
+
+
+dbfile selectionsDB;
+	field fldChoiceName;
+	field fldSelection;
+	sync_pref none;
+end;
+
+
+#Step 4:  Creating Radio Buttons
+#The radioBehavior function makes the checkboxes in 
+#the grid behave as radio buttons so only one can be 
+#checked at a time.
+
+function radioBehavior;
+	if invokersub = 0;
+		chkOne[0].checkbox = true;
+		chkOne[1].checkbox = false;
+		chkOne[2].checkbox = false;
+		chkOne[3].checkbox = false;
+	else_if invokersub = 1;
+		chkOne[0].checkbox = false;
+		chkOne[1].checkbox = true;
+		chkOne[2].checkbox = false;
+		chkOne[3].checkbox = false;
+	else_if invokersub = 2;
+		chkOne[0].checkbox = false;
+		chkOne[1].checkbox = false;
+		chkOne[2].checkbox = true;
+		chkOne[3].checkbox = false;
+	else_if invokersub = 3;
+		chkOne[0].checkbox = false;
+		chkOne[1].checkbox = false;
+		chkOne[2].checkbox = false;
+		chkOne[3].checkbox = true;
+	end_if;
+end;
+
+
+#Step 5:  Filling the Choices Database
+#The addChoice function inserts a random 
+#value into the Choices database.
+
+function addChoice;
+	#Set the field variable
+	fldChoice = "C" + string(randomn(100000),"#");
+	#Add a record
+	insert choicesDB;
+end;
+
+
+#Step 6:  Clearing the Selections Database
+#The clearSelections function clears the Selections 
+#database by deleting and reopening the database.
+
+function clearSelections;
+	#close the database
+	close selectionsDB;
+	#delete the database
+	delete "Selections";
+	#open the database
+	open selectionsDB, "Selections";
+end;
+
+
+#Step 7:  Filling the Selections Database
+#The insertSelection function adds or updates the value 
+#of the selected checkbox in the selections database
+
+function insertSelection;
+	#Set database fields
+	fldChoiceName = lblOne[invokersub].display;
+   fldSelection = chkOne[invokersub].checkbox;
+
+	#reset errorcode
+	errorcode = 0;
+
+	#search for the choice name in the Selections database
+	search selectionsDB, fldChoiceName;
+
+	#If found, update the selection else add the selection
+	if errorcode = 0;
+		remove selectionsDB;
+		insert selectionsDB;
+	else;
+		insert selectionsDB;
+	end_if;
+end;
+
+
+#Step 8:  Updating Selections
+#The grid checkboxes invoke the updateSelections function.  
+#This function inserts a selection into the Selections database 
+#by calling the insertSelection function.
+
+function updateSelections;
+	#Only allow one selection at a time
+	if chkSelections.checkbox = false;
+		call clearSelections;
+		call radioBehavior;
+		call insertSelection;
+	#Allow multiple selections
+	else;
+		call insertSelection;
+	end_if;
+end;
+
+
+#Step 9:  Loading Selections
+#The grid's ROW LOADED event invokes the loadSelections function.  
+#As the second column of the grid is being loaded with choices, 
+#the loadSelections function searches the selections database and, 
+#if it finds a matching choice, places a checkmark in the corresponding 
+#first column checkbox.
+
+function loadSelections;
+	variables;
+		string choiceName;
+	end;
+
+	#get the choice name
+	choiceName = grdOne[1, invokersub].display;
+
+	#reset errorcode
+	errorcode = 0;
+
+	#search for the choice name in the selections database
+	search selectionsDB, choiceName;
+
+	#If the choice is found, place the stored selection #value in the checkbox, else make the checkbox false
+	if errorcode = 0;
+		get_fields selectionsDB;
+		grdOne[0,invokersub].checkbox = fldSelection;
+	else;
+		grdOne[0,invokersub].checkbox = false;
+	end_if;
+end;
+
+
+#Step 10:  Displaying Selections
+#The OK button invokes the fillSelectionText.  
+#This function places the selected choices from 
+#the grid into the text field.
+
+function fillSelectionText;
+	variables;
+		numeric loopCounter;
+		numeric selectionCount;
+	end;
+
+	#clear existing choices from the text field
+	txtSelections.display = "";
+
+	#get the number of records in the selection database
+	selectionCount = selectionsDB.number_of_records;
+
+	#position the record pointer at the top of the #selections database
+	seek_start selectionsDB, 0;
+	
+	#Populate the text field with selected choices
+	for loopCounter = 0, loopCounter < selectionCount;
+		get_fields selectionsDB;
+		if fldSelection = true;
+			#update selections display
+			txtSelections.display = txtSelections.display + 
+															fldChoiceName + char(10);
+		end_if;
+	next loopCounter;
+end;
+
+
+#Step 11:  Starting Up and Shutting Down
+#The startup function opens the databases, clears the 
+#Selections database, and adds a new choice to the 
+#Choices database.
+
+#The shutdown function closes the databases.
+
+function startup;
+	#open the choice database
+	open choicesDB, "Choices";
+
+	#clear and open the selection database
+	call clearSelections;
+
+	#Add a choice to the Choices database
+	call addChoice;
+
+	#refresh the grid
+	show grdOne;
+end;
+
+
+function shutdown;
+	#close the choices database
+	close choicesDB;
+	#close the selections database
+	close selectionsDB;
+end;

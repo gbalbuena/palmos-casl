@@ -1,0 +1,78 @@
+#########################################################
+#
+#RejectFileSel
+#
+#From the book - Developing with CASL
+#
+#Copyright 2001 - 2002 Paul Schmid
+#
+#########################################################
+
+#Step 3:  Creating Global Variables
+
+variables;
+	numeric fieldOne;		#first database field
+	numeric fieldTwo;		#second database field
+	numeric fieldThree;	#third database field
+end;
+
+
+#Step 4:  Declaring a Database
+
+dbfile database;
+	field fieldOne;
+	field fieldTwo;
+	field fieldThree;
+	sync_pref none;
+end;
+
+
+#Step 5:  Validating the Selection
+#The isChoiceGood function returns true 
+#if the selected item in the File Selector 
+#has the correct filter string.  Otherwise it returns false.
+
+function isChoiceGood as numeric;
+	variables;
+		string filterString;
+	end;
+
+	#set the filter string
+	filterString = "myApp";
+
+	if left(fselTest.display,5) = filterString;
+		isChoiceGood = true;
+	else;
+		isChoiceGood = false;
+	end_if;
+end;
+
+
+#Step 6:  Displaying a File Selector Element
+#The selectElement function is invoked by the file selector.  
+#It calls the isChoiceGood function to validate the selection 
+#and displays the result in a label.
+
+function selectElement;
+	if isChoiceGood = true;
+		lblResult.display = fselTest.display;
+	else;
+		lblResult.display = "NOT VALID";
+	end_if;
+end;
+
+
+#Step 7:  Starting Up
+#The startup function create four databases 
+#at startup and lists them in the file selector.
+
+function startup;
+	open database, "myApp_selTest1";
+	open database, "myApp_selTest2";
+	open database, "yourApp_selTest3";
+	open database, "yourApp_selTest4";
+	close database;
+	#refresh the file selector
+	fselTest.display = "";
+end;
+

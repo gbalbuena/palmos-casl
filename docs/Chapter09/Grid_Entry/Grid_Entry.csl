@@ -1,0 +1,216 @@
+#########################################################
+#
+#Grid_Entry
+#
+#From the book - Developing with CASL
+#
+#Copyright 2002 Paul Schmid
+#
+#########################################################
+
+
+#Step 3:  Declaring the Database
+#Declare the databuffer database that will store the grid data.
+
+variables;
+	numeric fld_Number;
+	string fld_Value;
+end;
+
+
+dbfile dataBufferDB;
+	field fld_Number;
+	field fld_Value;
+	sync_pref none;
+end;
+
+
+#Step 4:  Labeling the Keypad 
+#The labelKeypad function places numbers on the keypad buttons.
+
+function labelKeypad;
+	variables;
+		numeric loopCounter;
+	end;
+
+	for loopCounter = 0, loopCounter < 10;
+		btnKey[loopCounter].display = string(loopCounter,"#");
+	next loopCounter;
+end;
+
+
+#Step 5:  Sending Keystrokes
+#The sendKeys function sends the text from a keypad 
+#button to a text field in the grid.  Before sending 
+#the text, it makes sure that a grid text field has 
+#focus.  After the text is sent, the MODIFIED property 
+#of the text field is set to true (1), indicating it has changed.
+
+function sendKeys;
+	variables;
+		object activeObject;
+	end;
+
+	#Get the form's focused object
+	activeObject = frmGrid.focused_object;
+
+	#Add the keypad text if the focused object is a text #field
+	if activeObject.object_type = "text";
+		activeObject.display = activeObject.display + 
+  													btnKey[invokersub].display;
+		#flag the child text object as being modifed
+		activeObject.modified = true;
+	end_if;	
+end;
+
+
+#Step 6:  Saving Grid Data
+#The finalUpdate function is responsible for saving any 
+#final changes made to the grid in case scrolling the grid 
+#does not occur before exiting the application.  In this example, 
+#finalUpdate is invoked when the Enter key is tapped while the cursor 
+#is in the grid's tenth data row.
+
+function finalUpdate;
+	variables;
+		numeric loopCounter;
+	end;
+ 
+	for loopCounter = 0, loopCounter < 5;
+		#write a grid row to the database if it has been modified
+		if grdData[1,loopCounter].modified = true;
+			seek_start dataBufferDB, grdData.bookmark + loopCounter;
+			fld_Number = value(grdData[0,loopCounter].display);
+			fld_Value = grdData[1,loopCounter].display;
+			put_fields dataBufferDB;
+		end_if;
+	next loopCounter;
+end;
+
+
+#Step 7:  Advancing the Cursor
+#The Enter button invokes the moveCursor function.  
+#This function advances the cursor to the text 
+#field in the next grid row.
+
+function moveCursor;
+	variables;
+		rowCounter = 0;
+		cursorPos = 0;
+	end;
+
+	#get the current cursor position
+	while rowCounter < 5;
+		if grdData[1,rowCounter].focused = true;
+			cursorPos = rowCounter;
+		end_if;
+		rowCounter = rowCounter + 1;
+	end_while;
+
+	#move the cursor to the next cursor position
+	if cursorPos < 4;
+		grdData[1,cursorPos + 1].focused = true;
+	#If at the last row, advance the grid bookmark
+	#and refresh the grid to load in new records
+	#and put the cursor to the first row
+	else_if cursorPos >= 4 and grdData.bookmark < 5;
+		#update the grid's bookmark
+		grdData.bookmark = 5;
+		#refresh the grid
+		show grdData;
+		#set focus on the first row
+		grdData[1,0].focused = true;
+	end_if;
+
+	#save rows 6 to 10 when enter button
+	#is tapped on row 10
+	if cursorPos = 4 and grdData.bookmark = 5;
+		call finalUpdate;
+	end_if;
+end;
+
+
+#Step 8:  Reading the Data Buffer Database
+#The grid's ROW LOADED event invokes the readDataBuffer 
+#function.  This function loads data records from the 
+#database into the grid each time the grid is scrolled 
+#or refreshed.
+
+function readDataBuffer;
+	#Load a number in the first grid column
+	grdData[0,invokersub].display = 
+													string(grdData.bookmark + invokersub + 1,"#");
+
+	#Position the record pointer
+	seek_start dataBufferDB, grdData.bookmark + invokersub;
+	errorcode = 0;
+	#Read record
+	get_fields dataBufferDB;
+	#Fill second column of grid with stored data or an empty
+	#string
+	if errorcode = 0;
+		grdData[1,invokersub].display = fld_Value;
+	else;
+		grdData[1,invokersub].display = "";
+	end_if;
+end;
+
+
+#Step 9:  Writing the Data Buffer Database
+#The grid's ROW UNLOADED event invokes the writeDataBuffer 
+#function.  This function writes data from the grid into the 
+#databuffer database when the grid is scrolled or refreshed.
+
+function writeDataBuffer;
+	#write a grid row to the database if the text field has been 
+	#modified
+	if grdData[1,invokersub].modified = true;
+		#Position the record pointer
+		seek_start dataBufferDB, grdData.old_bookmark + invokersub;
+		#Set field values
+		fld_Number = value(grdData[0,invokersub].display);
+		fld_Value = grdData[1,invokersub].display;
+		#Write to database
+		put_fields dataBufferDB;
+	end_if;
+end;
+
+
+#Step 10:  Clearing the Data Buffer Database
+#The clearDataBuffer function clears the databuffer database by 
+#deleting and reopening the database.
+
+function clearDataBuffer;
+	close dataBufferDB;
+	delete "DataBuff";
+	open dataBufferDB, "DataBuff";
+end;
+
+
+#Step 11:  Starting Up and Shutting Down
+#The startup function opens the databuffer database 
+#and fills the grid with database records.
+
+#The shutdown function closes the database.
+
+function startup;
+	#Open the databuffer database
+	open dataBufferDB, "DataBuff";
+
+	#Label the keypad
+	call labelKeypad;
+
+	#set grid's number of data rows
+	grdData.number_of_data_rows = 10;
+	
+	#Refresh the grid
+	show grdData;
+
+	#put focus in first row of grid's 2nd column
+	grdData[1,0].focused = true;
+end;
+
+
+function shutdown;
+	close dataBufferDB;
+end;

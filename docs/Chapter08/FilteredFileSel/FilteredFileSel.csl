@@ -1,0 +1,83 @@
+#########################################################
+#
+#FilteredFileSel
+#
+#From the book - Developing with CASL
+#
+#Copyright 2001 - 2002 Paul Schmid
+#
+#########################################################
+
+#Step 3:  Creating Global Variables
+
+variables;
+	string fileArray[100];  #Array bound to the selector
+	numeric fieldOne;			#first database field
+	numeric fieldTwo;			#second database field
+	numeric fieldThree;		#third database field
+end;
+
+
+#Step 4:  Declaring a Database
+
+dbfile database;
+	field fieldOne;
+	field fieldTwo;
+	field fieldThree;
+	sync_pref none;
+end;
+
+
+#Step 5:  Filtering the File Selector
+#The filterFileSelector function sorts 
+#through the file selector object, placing 
+#the filtered elements into the selector's string array.
+
+function filterFileSelector;
+	variables;
+		numeric loopCounter;
+		numeric numElements;
+		string filterString;
+		numeric displayCounter = 0;
+	end;
+
+	#get the number of elements in file selector
+	numElements = fselList.list_size;
+
+	#set the filter string
+	filterString = "sel";
+
+	for loopCounter = 0, loopCounter < numElements;
+		fselList.selected = loopCounter;
+		#put filtered files into the array
+		if left(fselList.display,3) = filterString;
+			fileArray[loopCounter] = fselList.display;
+			displayCounter = displayCounter + 1;
+		end_if;
+	next loopCounter;
+ 	
+	#place the array in the selector
+	selFilter.list = fileArray;
+	#adjust the list size of the selector
+	selFilter.list_size = displayCounter;
+	#refresh the selector
+	show selFilter;
+end;
+
+
+#Step 6:  Starting Up
+#The startup function creates four databases, 
+#updates the file selector, and calls the 
+#function to filter the file selector contents into the selector.
+
+function startup;
+	open database, "selTest1";
+	open database, "selTest2";
+	open database, "selTest3";
+	open database, "Test4";
+	close database;
+	#refresh file selector
+	fselList.display = "";
+	call filterFileSelector;
+end;
+

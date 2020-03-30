@@ -1,0 +1,139 @@
+#########################################################
+#
+#HealthTrak
+#
+#Form_Login.cpk
+#
+#From the book - Developing with CASL
+#
+#Copyright 2001 - 2002 Paul Schmid
+#
+#########################################################
+
+#Step 4:  Refreshing the User Selector
+#Whenever the string array bound to the user 
+#selector is modified, the selector must be refreshed 
+#or repainted in order for the new array contents to appear.  
+#Refresh a selector using both the HIDE and SHOW methods.
+
+function refreshUserSelector;
+	hide selUsers;
+	show selUsers;
+end;
+
+
+#Step 5:  Clearing the User Selector
+#The bound string array needs to be cleared 
+#each time the contents of the selector change.  
+#The clearUserSelector function places an empty 
+#string into each element of the array.
+
+function clearUserSelector;
+	variables;
+		numeric loopCounter;
+		numeric numElements = 10;
+	end;
+
+	#place an empty string into the array
+	for loopCounter = 0, loopCounter < numElements;
+		USER_NAMES[loopCounter] = "";
+	next loopCounter;
+end;
+
+ 
+#Step 6:  Filling the User Selector
+#The fillUserSelector function fills the bound 
+#USER_NAME array with the user names from the userDB database.
+
+function fillUserSelector;
+	variables;
+		numeric recordCount;
+		numeric loopCounter;
+	end;
+
+	recordCount = DB_RecordCount(userDB);
+
+	#move to the top of the user database
+	seek_start userDB, 0;
+
+	#put the user name into the selector array
+	for loopCounter = 0, loopCounter < recordCount;
+		get_fields userDB;
+		USER_NAMES[loopCounter] = name;
+	next loopCounter;
+
+	#prevent empty or duplicate selections
+	selUsers.list_size = recordCount;
+end;
+
+
+#Step 7:  Logging In
+#The login function is invoked when the user 
+#taps the Login button.  It opens a dataDB database 
+#based on the selected user name.  It also opens the 
+#Intro form so the current user can choose to enter, 
+#edit, or chart their data.
+
+function login;
+	variables;
+		numeric response;
+	end;
+
+	#set username
+	g_ActiveUserName = selUsers.display;
+	#is user valid?
+	if length(g_ActiveUserName) > 0;
+		hide frmLogin;
+		show frmIntro;
+		call openDB(dataDB, g_ActiveUserName);
+	else;
+		response = message_box(0,"HealthTrak",
+ 														"Invalid User.",
+ 															"","OK","");
+		g_ActiveUserName = "";
+	end_if;
+end;
+
+
+#Step 8:  Logging Out
+#The Logout button invokes the logout function.  
+#This function logs out the current user, sending 
+#them back to the login form, and sets the g_ActiveUserName 
+#variable to an empty string.
+
+function logOut;
+	hide frmIntro;
+	show frmLogin;
+	closeDB(dataDB);
+	#set activeuser to nothing
+	g_ActiveUserName = "";
+end;
+
+
+#Step 9:  Deleting a User
+#The deleteUser function deletes the user's profile 
+#record from the userDB database and deletes the user's 
+#dataDB database.  Therefore, once you have deleted a 
+#user all data entered for that user is also deleted.
+
+function deleteUser;
+	variables;
+		numeric response;
+		string userName;
+	end;
+
+	userName = selUsers.display;
+	#Is user valid?
+	if length(userName) > 0;
+		response = message_box(0,"HealthTrak",
+															"Remove this user?",
+														 "YES","","NO");
+		if response = 0;
+			call removeRecord(userDB, userName);
+			call deleteDB(userName);
+			call clearUserSelector;
+			call fillUserSelector;
+			call refreshUserSelector;
+		end_if;
+	end_if;
+end;

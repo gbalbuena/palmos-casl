@@ -1,0 +1,65 @@
+#########################################################
+#
+#RadioButtons
+#
+#From the book - Developing with CASL
+#
+#Copyright 2001 - 2002 Paul Schmid
+#
+#########################################################
+
+#Step 3:  Creating Radio Behavior
+#The radioSimulation function creates radio 
+#buttons by setting all checkboxes to false 
+#except for the checkbox being activated which is set to true.
+
+function radioSimulation;
+	variables;
+		numeric activeIndex;
+	end;
+
+	#invokersub tells which checkbox in the array was tapped
+	activeIndex = invokersub;
+
+	if activeIndex = 0;
+		chkRadio[0].checkbox = true;
+		chkRadio[1].checkbox = false;
+		chkRadio[2].checkbox = false;
+		chkRadio[3].checkbox = false;
+		chkRadio[4].checkbox = false;
+	else_if activeIndex = 1;
+		chkRadio[0].checkbox = false;
+		chkRadio[1].checkbox = true;
+		chkRadio[2].checkbox = false;
+		chkRadio[3].checkbox = false;
+		chkRadio[4].checkbox = false;
+	else_if activeIndex = 2;
+		chkRadio[0].checkbox = false;
+		chkRadio[1].checkbox = false;
+		chkRadio[2].checkbox = true;
+		chkRadio[3].checkbox = false;
+		chkRadio[4].checkbox = false;
+	else_if activeIndex = 3;
+		chkRadio[0].checkbox = false;
+		chkRadio[1].checkbox = false;
+		chkRadio[2].checkbox = false;
+		chkRadio[3].checkbox = true;
+		chkRadio[4].checkbox = false;
+	else_if activeIndex = 4;
+		chkRadio[0].checkbox = false;
+		chkRadio[1].checkbox = false;
+		chkRadio[2].checkbox = false;
+		chkRadio[3].checkbox = false;
+		chkRadio[4].checkbox = true;
+	end_if;
+end; 
+
+
+#Step 4:  Starting Up
+#Since all checkboxes are false by default, 
+#the startup function is required to make one of them true.
+
+#put a check in the first checkbox
+function startup;
+	chkRadio[0].checkbox = true;
+end;

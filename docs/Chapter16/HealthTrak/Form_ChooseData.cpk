@@ -1,0 +1,265 @@
+#########################################################
+#
+#HealthTrak
+#
+#Form_ChooseData.cpk
+#
+#From the book - Developing with CASL
+#
+#Copyright 2001 - 2002 Paul Schmid
+#
+#########################################################
+
+function showLineChartForm;
+end;
+
+
+#Step 5:  Adding a Module Level Variable
+#Add the m_currPageCount variable to the top of the 
+#Form_ChooseData.cpk file.  Since there are no module 
+#level variables in CASL, the variable has been prefixed 
+#with an m to indicate its intended scope.
+
+variables; 
+ 	#keeps track of which db records are shown in a selector
+	numeric m_currPageCount;
+end;
+
+
+#Step 6:  Managing the Data Selector
+#The data selector is used to display the five 
+#types of data that a user can chart - systolic, 
+#diastolic, pulse, weight, and temperature.  
+#It is also used to display the contents of 
+#the SearchDB database, five records at a time.
+
+#The following five functions are used to display 
+#the SearchDB database records in the selector.
+
+#The clearDataSelector function places an empty 
+#string into each element of the SEARCH_DATES array.  
+#Since the SEARCH_DATES array is bound to the selector, 
+#this has the effect of clearing the selector.
+  
+function clearDataSelector;
+	variables;
+		numeric loopCounter;
+	end;
+
+	for loopCounter = 0, loopCounter < 5;
+		SEARCH_DATES[loopCounter] = "";
+	next loopCounter;
+end;
+
+
+#When a string array bound to a selector is modified, 
+#the selector must be refreshed or repainted in order 
+#for the new array contents to appear.  
+#Use both the HIDE and SHOW methods to refresh a selector.
+
+function refreshDataSelector;
+	hide selData;
+	show selData;
+end;
+
+
+#The fillDataSelector function retrieves the records 
+#from the SearchDB database to display in the selector.
+
+function fillDataSelector;
+	variables;
+		numeric endPos;
+		numeric begPos;
+		numeric loopCounter;
+	end;
+
+	#first and last record based on page count
+	begpos = m_currPageCount * SEL_SEARCH_SIZE;
+	endPos = currRecCount(searchDB, m_currPageCount, SEL_SEARCH_SIZE);
+
+	#move to first record of current "page"
+	seek_start searchDB, begPos;
+
+	#fill the search dates
+	for loopCounter = 0, loopCounter < endPos;
+		get_fields searchDB;
+		SEARCH_DATES[loopCounter] = dateTranslation(dateID);
+	next loopCounter;
+
+	#set selector to display 5 or less
+	selData.list_size = endPos;
+end;
+
+
+#The moveUp function is invoked by the up-arrow button.  
+#It updates the selector's page count and provides the 
+#selector with a new set of records from the SearchDB.
+
+function moveUp;
+	if m_currPageCount > 0;
+		m_currPageCount = m_currPageCount - 1;
+		call clearDataSelector;
+		call fillDataSelector;
+		call refreshDataSelector;
+	end_if;
+end;
+
+
+#The moveDown function is invoked by the down-arrow button.  
+#It updates the selector's page count and provides the selector 
+#with a new set of records from the SearchDB.
+
+function moveDown;
+	if m_currPageCount < totalPageCount(searchDB, SEL_SEARCH_SIZE);
+		m_currPageCount = m_currPageCount + 1;
+		call clearDataSelector;
+		call fillDataSelector;
+		call refreshDataSelector;
+	end_if;
+end;
+
+
+#Step 7:  Building Search Dates
+#The loadSearchDates function fills the date text 
+#objects with the current date when the ChooseData 
+#form is opened.
+
+#The startDate and endDate functiond returns a 
+#date string in the YYYYMMDD format.
+
+function loadSearchDates;
+	txtStartDay.display = string(day,"0#");
+	txtStartMonth.display = string(month,"0#");
+	txtStartYear.display = string(year,"####");
+	txtEndDay.display = string(day,"0#");
+	txtEndMonth.display = string(month,"0#");
+	txtEndYear.display = string(year,"####");
+	#set the focus to the first day field
+	txtStartDay.focused = true;
+end;
+
+
+function startDate as string;
+	startDate = txtStartYear.display + 
+   txtStartMonth.display + 
+   txtStartDay.display;
+end;
+
+
+function endDate as string;
+	endDate = txtEndYear.display + 
+            txtEndMonth.display + 
+            txtEndDay.display;
+end;
+
+
+#Step 8:  Searching for Records
+#The search button invokes the searchDataRecords function.  
+#It fills the SearchDB database with records that meet the 
+#search date criteria and displays the first five records 
+#in the selector.
+
+function searchDataRecords;
+	call validateSearchDates;
+	lblSearching.hidden = false;
+	call fillSearchDB(startDate, endDate);
+	lblSearching.hidden = true;
+	#reset the current page count to zero
+	m_currPageCount = 0;
+	call clearDataSelector;
+	call fillDataSelector;
+	call refreshDataSelector;
+end;
+
+
+#Step 9:  Scrolling the Selector
+#The up and down arrow buttons that allow you to 
+#scroll through the selector are shown and hidden 
+#with these two functions.  When the ChooseData form 
+#is in Chart mode, these buttons are hidden.
+
+function showScrollButtons;
+	btnUp.hidden = false;
+	btnDown.hidden = false;
+end;
+
+
+function hideScrollButtons;
+	btnUp.hidden = true;
+	btnDown.hidden = true;
+end;
+
+
+#Step 10:  Opening the ChooseData Form
+#The ChooseData form can be opened in one of two modes.  
+
+#In Edit mode the user can search for records that fall within a date range.  
+#The records that are found are listed in the selector and can be edited by 
+#tapping the OK button.
+
+#In Chart mode the user can select a date range and a data 
+#type to be charted.  The line chart will display any data 
+#within the date range when the OK button is tapped.
+
+
+#The showChooseDataForm function decides which mode to 
+#open based on the button that invokes it.
+
+
+function showChooseDataForm;
+	variables;
+		numeric response;
+	end;
+
+	if DB_Recordcount(dataDB) > 0;
+		hide frmIntro;
+		show frmChooseData;
+		call loadSearchDates;
+	
+		if invoker = btnEditData;
+			frmChooseData.display = "Edit Data";
+			btnSearch.hidden = false;
+			call showScrollButtons;
+			selData.list = SEARCH_DATES;
+		else_if invoker = btnChartData;
+			frmChooseData.display = "Chart Data";
+			btnSearch.hidden = true;
+			call hideScrollButtons;
+			selData.list = CHART_CHOICES;	
+		end_if;
+		call refreshDataSelector;
+	else;
+		response = message_box(0,"HealthTrak",
+														 "Insufficient Data",
+														 "","OK","");
+	end_if;
+end;
+
+
+#Step 11:  Editing or Charting
+#The OK button invokes the showData_or_Chart 
+#function which opens the chart or Data form 
+#based on the display of the ChooseData form's frame.
+
+function show_Data_or_Chart;
+	if frmChooseData.display = "Edit Data";
+		call showDataForm_Edit;
+	else_if frmChooseData.display = "Chart Data";
+		call showLineChartForm;
+	end_if;
+end;
+
+
+#Step 12:  Closing the ChooseData Form
+#This function hides the ChooseData form.
+
+function hideChooseDataForm;
+	call clearDataSelector;
+	call hideScrollButtons;
+	hide frmChooseData;
+	show frmIntro;
+end;
+
+
+
+

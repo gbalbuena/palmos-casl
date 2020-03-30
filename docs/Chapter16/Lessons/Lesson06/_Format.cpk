@@ -1,0 +1,311 @@
+#########################################################
+#
+#HealthTrak
+#
+#_Format.cpk
+#
+#From the book - Developing with CASL
+#
+#Copyright 2001 - 2002 Paul Schmid
+#
+#########################################################
+
+#Step 2:  Converting Units
+#These six functions convert English to Metric and vice versa.
+
+function kg_to_lb(numeric nWeight) as numeric;
+	kg_to_lb = nWeight * 0.4536;
+end;
+
+function lb_to_kg(numeric nWeight) as numeric;
+	lb_to_kg = nWeight * 2.2046;
+end;
+
+function in_to_cm(numeric nHeight) as numeric;
+	in_to_cm = nHeight * 2.54;
+end;
+
+function cm_to_in(numeric nHeight) as numeric;
+	cm_to_in = nHeight * 0.3937;
+end;
+
+function F_to_C(numeric temp) as numeric;
+	F_to_C = (temp - 32) / 1.8;
+end;
+
+function C_to_F(numeric temp) as numeric;
+	C_to_F = 1.8 * temp + 32;
+end;
+
+
+#Step 3:  Translating Dates
+#The dateTranslation function translates a date 
+#string into three different formats depending on the input format.  
+#Table 16-5 lists the possible input and output formats.
+
+#Table 16-5
+#Input						Output
+#YYYYMMDDHHMMSS		DD/MM/YYYY HH:MM.SS
+#DD/MM/YYYY 			HH:MM.SS	YYYYMMDDHHMMSS
+#YYYYMMDD					YYYYMMDD235959
+
+ 
+function dateTranslation(string sDate) as string;
+	variables;
+		string sYear;
+		string sMonth;
+		string sDay;
+		string sHour;
+		string sMinute;
+		string sSecond;
+		string sLastTime = "235959";
+	end;
+
+	#YYYYMMDDHHMMSS to DD/MM/YYYY HH:MM.SS 
+	if length(sDate) = 14;
+		sYear = left(sDate,4);
+		sMonth = mid(sDate, 4, 2);
+		sDay = mid(sDate,6,2);
+	
+		sHour = mid(sDate,8,2);
+		sMinute = mid(sDate, 10, 2);
+		sSecond = right(sDate,2);
+	
+		dateTranslation = sDay + "/" + 
+											sMonth + "/" + 
+											sYear + " " + 
+											sHour + ":" + 
+											sMinute + "." + 
+											sSecond;
+	
+	#DD/MM/YYYY HH:MM.SS to YYYYMMDDHHMMSS				
+	else_if length(sDate) = 19;
+		sYear = mid(sDate,6,4);
+		sMonth = mid(sDate, 3, 2);
+		sDay = left(sDate,2);
+	
+		sHour = mid(sDate,11,2);
+		sMinute = mid(sDate, 14, 2);
+		sSecond = right(sDate,2);
+		dateTranslation = sYear + 
+											sMonth + 
+											sDay + 
+											sHour + 
+											sMinute + 
+											sSecond;
+	#YYYYMMDD to YYYYMMDD235959
+	else_if length(sDate) = 8;
+		sYear = left(sDate,4);
+		sMonth = mid(sDate, 4, 2);
+		sDay = mid(sDate,6,2);
+		dateTranslation = sYear + 
+											sMonth + 
+											sDay + 
+											sLastTime;
+	end_if;
+end;
+
+
+#Step 4:  Limiting Text Input
+#The limitInput function accepts a minimum and maximum 
+#ASCII value representing a range of characters.  
+#For example, ASCII numbers 48 to 57 represent 0 through 9.  
+#Therefore, limitInput(48, 57) will delete any non-numerical characters.
+
+function limitInput(numeric minAscVal, numeric maxAscVal);
+	variables;
+		numeric txtLength;	#total length of text
+		numeric lastASCVal;	#ASCII value of entered character
+		numeric cursorPos;	#cursor position
+		string leftString;	#string left of cursor
+		string rightString;	#string right of cursor
+		object txtField;		#invoking object
+	end;
+
+	#name of invoking text field
+	txtField = invoker;
+
+	#length of the text
+	txtLength = length(txtField.display);
+
+	#current cursor position
+	cursorPos = txtField.cursor;
+
+	#text left of the cursor including newly
+	#entered character
+	leftString = left(txtField.display,cursorPos);
+
+	#text to the right of the newly entered character
+	rightString = right(txtField.display, txtLength - cursorPos);
+
+	#ASCII value of the last character in leftString
+	lastASCVal = asc(right(leftString,1));
+
+	#evaluate the ASCII value
+	#If it is within the range leave it otherwise remove it
+	if lastASCVal < minAscVal or lastASCVal > maxAscVal;
+		txtField.display = left(txtField.display,
+      											cursorPos - 1) + rightString;
+	end_if;
+end;
+
+
+#Step 5:  Limiting Input to Numbers
+#The anyNumber function limits the input to numbers only.  
+#The following text objects invoke this function.
+
+#All text objects on the Data form
+#Age, height, and weight text objects on the User form
+#The start year and end year text objects on the ChooseData form
+
+function anyNumber;
+	call limitInput(48,57);
+end;
+
+
+#Step 6:  Limiting Input to Days of the Month
+#The dayNumbersOnly function only allows the input 
+#to range from 01 to 31.  It limits the input based 
+#on the cursor position and the value of the previous digit.  
+#For example, if the first digit is zero, the second digit 
+#can be one through nine.  However, if the first digit is 
+#three, the second digit is limited to either zero or one.  
+#This prevents the input from exceeding 31.  The txtStartDay 
+#and txtEndDay text objects on the chooseData form invoke this function.
+
+function dayNumbersOnly;
+	variables;
+		object txtField;
+		numeric firstDigit;
+	end;
+
+	#name of the invoking text object
+	txtField = invoker;
+
+	if txtField.cursor = 1;
+		call limitInput(48,51);	
+	else_if txtField.cursor = 2;
+		firstDigit = value(left(txtField.display,1));
+		if firstDigit = 0;
+			call limitInput(49,57);
+		else_if firstDigit > 2;
+			call limitInput(48,49);
+		else;
+			call limitInput(48,57);
+		end_if;
+	end_if;
+end;
+
+
+#Step 7:  Limiting Input to Months of the Year
+#The monthNumbersOnly function works just like the 
+#dayNumbersOnly function.  It limits the valid input to 
+#01 through 12.  The txtStartMonth and txtEndMonth text 
+#objects on the ChooseData form invoke this function.
+
+function monthNumbersOnly;
+	variables;
+		object txtField;
+		numeric firstDigit;
+	end;
+
+	#name of the invoking text object
+	txtField = invoker;
+
+	if txtField.cursor = 1;
+		#limit first digit to 0 and 1
+		call limitInput(48,49);
+	else_if txtField.cursor = 2;
+		firstDigit = value(left(txtField.display,1));
+		if firstDigit = 0;
+			call limitInput(49,57);
+		else_if firstDigit = 1;
+			call limitInput(48,50);
+		end_if;
+	end_if;
+end;
+
+
+#Step 8:  Limiting Input to the Alphabet
+#The alphabetOnly function limits text input to upper 
+#and lowercase letters of the alphabet and the space 
+#character represented by ASCII 32.  The txtName object 
+#on the User form invokes this function.
+
+function alphabetOnly;
+	variables;
+		numeric txtLength;
+		numeric lastASCVal;
+		numeric cursorPos;
+		string leftString;
+		string rightString;
+		object txtField;
+	end;
+
+	#name of invoking text object
+	txtField = invoker;
+
+	#length of the text
+	txtLength = length(txtField.display);
+
+	#current cursor position
+	cursorPos = txtField.cursor;
+
+	#text left of cursor including newly entered character
+	leftString = left(txtField.display,cursorPos);
+
+	#characters to the right of the newly entered character
+	rightString = right(txtField.display, txtLength - cursorPos);
+
+	#ASCII value of the last character in leftString
+	lastASCVal = asc(right(leftString,1));
+
+	#evaluate the ASCII value
+	#If it is a letter or space leave it otherwise remove it
+	if lastASCVal >= 65 and lastASCVal <= 90;
+		#do nothing
+    else_if lastASCVal >= 97 and lastASCVal <= 122;
+		#do nothing
+	else_if lastASCVal = 32;
+		#do nothing
+	else;
+		txtField.display = left(txtField.display, 
+														cursorPos - 1) + rightString;
+	end_if;
+end;
+
+
+#Step 9:  Validating Search Dates
+#The validateSearchDates function verifies the format 
+#of the start and end dates on the ChooseData form.  
+#For the day and month, validateSearchDates adds a zero 
+#to the beginning of a single digit.  For the year, 
+#validateSeachDates will change the text to the current 
+#year if it is less than or greater than 4 digits.
+
+function validateSearchDates;
+	if length(txtStartDay.display) < 2;
+		txtStartDay.display = string(value(txtStartDay.display), "0#");
+	end_if;
+	
+	if length(txtEndDay.display) < 2;
+		txtEndDay.display = string(value(txtEndDay.display), "0#");
+	end_if;
+
+	if length(txtStartMonth.display) < 2;
+	txtStartMonth.display=string(value(txtStartMonth.display),"0#");
+	end_if;
+	
+	if length(txtEndMonth.display) < 2;
+		txtEndMonth.display=string(value(txtEndMonth.display),"0#");
+	end_if;
+
+	if length(txtStartYear.display) < 4;
+		txtStartYear.display = string(year,"####");
+	end_if;
+
+	if length(txtEndYear.display) < 4;
+		txtEndYear.display = string(year,"####");
+	end_if;
+end;
+
